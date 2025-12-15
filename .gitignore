@@ -1,0 +1,35 @@
+# Node/Next
+node_modules/
+.next/
+.next.cache/
+out/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Environment files (keep .example files)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Backups
+*.backup/
+infra.backup/
+*.old/
+# OS
+.DS_Store
+Thumbs.db
+# Logs & coverage
+*.log
+coverage/
+.pytest_cache/
+# Build & dist
+build/
+dist/
+# Editor
+.idea/
+.vscode/

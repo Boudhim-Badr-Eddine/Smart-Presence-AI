@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NProgress styles */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: linear-gradient(to right, #f97316, #fb923c);
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px #f97316, 0 0 5px #f97316;
+  opacity: 1;
+  transform: rotate(3deg) translate(0px, -4px);
+}
+
+:root {
+  color-scheme: dark;
+  background-color: #1a1a2e;
+  color: #f8f8f2;
+}
+
+/* Palette theming using data attributes */
+[data-palette="blue"] {
+  --brand-bg: 0 0% 100% / 0.05;
+  --brand: 199 89% 48%;
+}
+[data-palette="emerald"] {
+  --brand-bg: 0 0% 100% / 0.05;
+  --brand: 145 84% 40%;
+}
+[data-palette="amber"] {
+  --brand-bg: 0 0% 100% / 0.05;
+  --brand: 38 92% 50%;
+}
+[data-palette="purple"] {
+  --brand-bg: 0 0% 100% / 0.05;
+  --brand: 272 87% 60%;
+}
+
+.brand-button {
+  background-color: hsl(var(--brand));
+}
+
+/* Focus outlines */
+:focus-visible {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 2px;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #111827;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+:root.light {
+  color-scheme: light;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.15), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.12), transparent 45%),
+    linear-gradient(135deg, rgba(26, 26, 46, 0.8) 0%, rgba(30, 30, 50, 0.7) 100%);
+}
+
+.light body {
+  background: radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06), transparent 45%),
+    linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-md bg-gradient-to-r from-primary-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 transition hover:scale-[1.01] hover:shadow-amber-500/30;
+}
+
+.card {
+  @apply rounded-xl border border-white/5 bg-white/5 p-6 shadow-xl backdrop-blur;
+}
+
+.light .card {
+  @apply border-gray-200 bg-white shadow-md;
+}
