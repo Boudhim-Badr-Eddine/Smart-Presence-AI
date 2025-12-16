@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.schemas.notification import NotificationCreate, NotificationOut, NotificationListOut
-from app.services.notification import NotificationService
-from app.utils.deps import get_db, get_current_user
+
 from app.models.user import User
+from app.schemas.notification import NotificationCreate, NotificationListOut, NotificationOut
+from app.services.notification import NotificationService
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["notifications"])
 
@@ -52,7 +53,9 @@ def get_my_notifications(
     current_user: User = Depends(get_current_user),
 ):
     """Get current user's notifications."""
-    notifications = NotificationService.get_user_notifications(db, current_user.id, limit, unread_only)
+    notifications = NotificationService.get_user_notifications(
+        db, current_user.id, limit, unread_only
+    )
     unread_count = NotificationService.get_unread_count(db, current_user.id)
 
     return NotificationListOut(notifications=notifications, unread_count=unread_count)

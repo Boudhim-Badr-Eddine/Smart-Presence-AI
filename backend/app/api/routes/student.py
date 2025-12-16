@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from sqlalchemy.orm import Session
-from app.utils.deps import get_db, get_current_user
-from app.models.user import User
-from app.models.student import Student
-from app.models.session import Session as SessionModel
-from app.models.attendance import AttendanceRecord
-from sqlalchemy import func, and_
 from datetime import datetime, timedelta
-from typing import List, Dict
-import os
 from pathlib import Path
+from typing import Dict
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from sqlalchemy.orm import Session
+
+from app.models.attendance import AttendanceRecord
+from app.models.session import Session as SessionModel
+from app.models.student import Student
+from app.models.user import User
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["student"])
 
@@ -28,7 +28,9 @@ def get_student_stats(
         raise HTTPException(status_code=404, detail="Student profile not found")
 
     # Get attendance records
-    total_sessions = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id).count()
+    total_sessions = (
+        db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id).count()
+    )
     present_count = (
         db.query(AttendanceRecord)
         .filter(AttendanceRecord.student_id == student.id, AttendanceRecord.status == "present")
@@ -176,7 +178,9 @@ def get_student_justifications(
 
     records = (
         db.query(AttendanceRecord)
-        .filter(AttendanceRecord.student_id == student.id, AttendanceRecord.justification.isnot(None))
+        .filter(
+            AttendanceRecord.student_id == student.id, AttendanceRecord.justification.isnot(None)
+        )
         .order_by(AttendanceRecord.marked_at.desc())
         .all()
     )
@@ -434,7 +438,7 @@ async def upload_avatar(
     storage_dir = Path("/app/storage/avatars")
     storage_dir.mkdir(parents=True, exist_ok=True)
     file_path = storage_dir / f"{student.id}_{file.filename}"
-    
+
     with open(file_path, "wb") as f:
         content = await file.read()
         f.write(content)

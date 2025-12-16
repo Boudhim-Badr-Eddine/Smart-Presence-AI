@@ -40,7 +40,11 @@ const actionColors: Record<string, { bg: string; icon: React.ReactNode; label: s
   },
 };
 
-export default function AuditTrail({ entries, isLoading, title = 'Historique des modifications' }: AuditTrailProps) {
+export default function AuditTrail({
+  entries,
+  isLoading,
+  title = 'Historique des modifications',
+}: AuditTrailProps) {
   if (isLoading) {
     return <TableSkeleton rows={5} columns={4} />;
   }
@@ -50,13 +54,18 @@ export default function AuditTrail({ entries, isLoading, title = 'Historique des
       <h3 className="mb-4 font-semibold text-white dark:text-white light:text-gray-900">{title}</h3>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">Aucune modification enregistrée</p>
+        <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+          Aucune modification enregistrée
+        </p>
       ) : (
         <div className="space-y-3">
           {entries.map((entry) => {
             const action = actionColors[entry.action];
             return (
-              <div key={entry.id} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/2 p-3 dark:border-white/5 dark:bg-white/2 light:border-gray-200 light:bg-gray-50">
+              <div
+                key={entry.id}
+                className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/2 p-3 dark:border-white/5 dark:bg-white/2 light:border-gray-200 light:bg-gray-50"
+              >
                 <div className={`mt-1 rounded p-1.5 ${action.bg}`}>{action.icon}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">

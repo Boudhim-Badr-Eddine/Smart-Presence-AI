@@ -12,7 +12,18 @@ from alembic import context
 import os
 from app.db.base import Base
 # Import models to ensure they are registered with Base.metadata
-from app.models import user, student, trainer, session, attendance, notification, chatbot, facial_embedding
+from app.models import (
+    user,
+    student,
+    trainer,
+    session,
+    attendance,
+    notification,
+    chatbot,
+    facial_embedding,
+    admin_message,
+    smart_attendance,
+)
 
 # This is the Alembic Config object
 config = context.config

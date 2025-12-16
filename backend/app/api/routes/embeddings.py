@@ -1,11 +1,12 @@
+import base64
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from pathlib import Path
-import base64
-import os
-from app.utils.deps import get_db
+
 from app.models.user import User
+from app.utils.deps import get_db
 
 router = APIRouter()
 
@@ -39,8 +40,6 @@ def queue_embeddings(payload: QueueEmbeddingsPayload, db: Session = Depends(get_
             continue
 
     # Write a simple job file to be processed by a worker later
-    (job_dir / "job.json").write_text(
-        '{"user_id": %d, "count": %d}' % (user.id, len(saved))
-    )
+    (job_dir / "job.json").write_text('{"user_id": %d, "count": %d}' % (user.id, len(saved)))
 
     return {"queued": True, "images": saved}

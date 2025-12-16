@@ -1,7 +1,7 @@
-"use client";
-import { useState, useEffect } from "react";
-import { X, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+'use client';
+import { useState, useEffect } from 'react';
+import { X, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Step = {
   title: string;
@@ -11,23 +11,23 @@ type Step = {
 
 const steps: Step[] = [
   {
-    title: "Bienvenue sur SmartPresence",
-    content: "Ce guide rapide vous aidera à découvrir les fonctionnalités principales.",
+    title: 'Bienvenue sur SmartPresence',
+    content: 'Ce guide rapide vous aidera à découvrir les fonctionnalités principales.',
   },
   {
-    title: "Notifications",
-    content: "Consultez vos alertes et gérez vos préférences depuis le centre de notifications.",
-    target: "notifications",
+    title: 'Notifications',
+    content: 'Consultez vos alertes et gérez vos préférences depuis le centre de notifications.',
+    target: 'notifications',
   },
   {
-    title: "Calendrier",
-    content: "Visualisez vos cours, examens et rappels dans un calendrier unifié.",
-    target: "calendar",
+    title: 'Calendrier',
+    content: 'Visualisez vos cours, examens et rappels dans un calendrier unifié.',
+    target: 'calendar',
   },
   {
-    title: "Profil",
-    content: "Personnalisez votre expérience : direction, thème, langue et palette.",
-    target: "profile",
+    title: 'Profil',
+    content: 'Personnalisez votre expérience : direction, thème, langue et palette.',
+    target: 'profile',
   },
 ];
 
@@ -36,7 +36,7 @@ export default function OnboardingWalkthrough() {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    const seen = localStorage.getItem("spa_onboarding_seen");
+    const seen = localStorage.getItem('spa_onboarding_seen');
     if (!seen) {
       setActive(true);
     }
@@ -51,7 +51,7 @@ export default function OnboardingWalkthrough() {
   };
 
   const handleClose = () => {
-    localStorage.setItem("spa_onboarding_seen", "true");
+    localStorage.setItem('spa_onboarding_seen', 'true');
     setActive(false);
   };
 
@@ -88,7 +88,7 @@ export default function OnboardingWalkthrough() {
                   <div
                     key={i}
                     className={`h-1.5 w-8 rounded-full ${
-                      i === currentStep ? "bg-blue-500" : "bg-zinc-700"
+                      i === currentStep ? 'bg-blue-500' : 'bg-zinc-700'
                     }`}
                   />
                 ))}
@@ -97,7 +97,7 @@ export default function OnboardingWalkthrough() {
                 onClick={handleNext}
                 className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                {currentStep < steps.length - 1 ? "Suivant" : "Terminer"}
+                {currentStep < steps.length - 1 ? 'Suivant' : 'Terminer'}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>

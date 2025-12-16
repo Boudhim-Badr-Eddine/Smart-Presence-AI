@@ -1,7 +1,8 @@
 from datetime import datetime, time
 from decimal import Decimal
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class AttendanceCreate(BaseModel):

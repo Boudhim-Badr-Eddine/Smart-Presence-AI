@@ -1,13 +1,15 @@
+from datetime import datetime, timedelta
+from typing import Dict
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.utils.deps import get_db, get_current_user
-from app.models.user import User
+
+from app.models.attendance import AttendanceRecord
 from app.models.session import Session as SessionModel
 from app.models.student import Student
-from app.models.attendance import AttendanceRecord
-from sqlalchemy import func, and_
-from datetime import datetime, timedelta
-from typing import List, Dict
+from app.models.user import User
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["trainer"])
 
@@ -22,8 +24,10 @@ def get_trainer_stats(
         raise HTTPException(status_code=403, detail="Only trainers can access this endpoint")
 
     # Find trainer's sessions
-    total_sessions = db.query(SessionModel).filter(SessionModel.trainer_id == current_user.id).count()
-    
+    total_sessions = (
+        db.query(SessionModel).filter(SessionModel.trainer_id == current_user.id).count()
+    )
+
     # Count this week's sessions
     start_of_week = datetime.now() - timedelta(days=datetime.now().weekday())
     this_week = (
@@ -87,7 +91,9 @@ def get_upcoming_sessions(
     result = []
     for s in sessions:
         # Count students for this session's classroom (approximation)
-        student_count = db.query(Student).filter(Student.class_name == getattr(s, "class_name", "")).count()
+        student_count = (
+            db.query(Student).filter(Student.class_name == getattr(s, "class_name", "")).count()
+        )
         result.append(
             {
                 "id": s.id,

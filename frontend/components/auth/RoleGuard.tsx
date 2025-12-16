@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useAuth } from "@/lib/auth-context";
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useAuth } from '@/lib/auth-context';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 type Props = {
-  allow: Array<"admin" | "trainer" | "student">;
+  allow: Array<'admin' | 'trainer' | 'student'>;
   children: React.ReactNode;
 };
 
@@ -15,7 +15,7 @@ export default function RoleGuard({ allow, children }: Props) {
   const router = useRouter();
 
   if (!user) {
-    router.push("/auth/login");
+    router.push('/auth/login');
     return null;
   }
 
@@ -28,8 +28,18 @@ export default function RoleGuard({ allow, children }: Props) {
             Vous n'avez pas les droits pour accéder à cette page.
           </p>
           <div className="mt-4 flex gap-2">
-            <Link href="/" className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700">Accueil</Link>
-            <Link href={`/${user.role}`} className="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-500">Aller au tableau de bord</Link>
+            <Link
+              href="/"
+              className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700"
+            >
+              Accueil
+            </Link>
+            <Link
+              href={`/${user.role}`}
+              className="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-500"
+            >
+              Aller au tableau de bord
+            </Link>
           </div>
           <p className="mt-2 text-xs text-zinc-500">Route: {pathname}</p>
         </div>

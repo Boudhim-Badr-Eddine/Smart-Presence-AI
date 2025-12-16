@@ -3,7 +3,7 @@
 # Starts all services with error handling, health checks, and user feedback
 # Usage: ./scripts/start.sh
 
-set -e
+set -euo pipefail
 
 # Color codes for output
 RED='\033[0;31m'
@@ -37,15 +37,21 @@ if ! command -v docker &> /dev/null; then
   exit 1
 fi
 
-# Check Docker Compose
-if ! docker-compose version &> /dev/null; then
+# Detect docker compose (v2) or docker-compose (v1)
+if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+  COMPOSE_CMD=(docker compose)
+  COMPOSE_VER=$(docker compose version | grep -oE '[0-9.]+' | head -1)
+elif command -v docker-compose &> /dev/null; then
+  COMPOSE_CMD=(docker-compose)
+  COMPOSE_VER=$(docker-compose --version | grep -oE '[0-9.]+' | head -1)
+else
   log_error "Docker Compose not installed"
-  echo "  Please install Docker Compose (included in Docker Desktop)"
+  echo "  Install Docker Compose (v2 recommended)"
   exit 1
 fi
 
 log_success "Docker $(docker --version | awk '{print $NF}')"
-log_success "Docker Compose $(docker-compose --version | grep -oE '[0-9.]+' | head -1)"
+log_success "Compose ${COMPOSE_VER}"
 
 # Check .env file
 if [ ! -f .env ]; then
@@ -75,7 +81,7 @@ PORTS_CONFLICT=0
 check_port_available 3000 "Frontend" || PORTS_CONFLICT=1
 check_port_available 8000 "Backend" || PORTS_CONFLICT=1
 check_port_available 5432 "Database" || PORTS_CONFLICT=1
-check_port_available 6379 "Redis" || PORTS_CONFLICT=1
+check_port_available 6380 "Redis" || PORTS_CONFLICT=1
 
 if [ $PORTS_CONFLICT -eq 1 ]; then
   log_warning "Some ports are already in use"
@@ -91,7 +97,7 @@ fi
 # Start services
 echo ""
 log_info "Starting services with Docker Compose..."
-if ! docker-compose up -d 2>&1; then
+if ! "${COMPOSE_CMD[@]}" up -d 2>&1; then
   log_error "Failed to start Docker services"
   log_info "Try: docker system prune -af"
   exit 1
@@ -133,7 +139,7 @@ echo "   Frontend:   ${BLUE}http://localhost:3000${NC}"
 echo "   Backend:    ${BLUE}http://localhost:8000${NC}"
 echo "   API Docs:   ${BLUE}http://localhost:8000/docs${NC}"
 echo "   Database:   ${BLUE}postgres://localhost:5432${NC}"
-echo "   Redis:      ${BLUE}localhost:6379${NC}"
+echo "   Redis:      ${BLUE}localhost:6380${NC}"
 echo ""
 echo -e "${BLUE}📚 Useful commands:${NC}"
 echo "   ./scripts/status.sh   - Check service health"

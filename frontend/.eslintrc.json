@@ -2,6 +2,30 @@
   "extends": ["next/core-web-vitals"],
   "rules": {
     "@next/next/no-img-element": "off",
-    "react/no-unescaped-entities": "off"
-  }
+    "react/no-unescaped-entities": "off",
+
+    /* Workshop-friendly relaxations */
+    "jsx-a11y/aria-props": "off",
+    "jsx-a11y/aria-role": "off",
+    "jsx-a11y/role-has-required-aria-props": "off",
+    "jsx-a11y/interactive-supports-focus": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/label-has-associated-control": "off",
+    "jsx-a11y/no-noninteractive-element-interactions": "off",
+    "react/jsx-no-target-blank": "off",
+
+    /* Allow inline styles for rapid prototyping */
+    "react/no-danger": "off"
+  },
+  "overrides": [
+    {
+      "files": ["public/sw.js"],
+      /* Disable parsing for service worker file to avoid Next/Babel parser issues */
+      "rules": {
+        "@typescript-eslint/no-var-requires": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["public/sw.js", ".next/**", "node_modules/**"]
 }

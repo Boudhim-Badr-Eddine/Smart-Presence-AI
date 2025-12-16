@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
+
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+
 from app.models.attendance import AttendanceRecord
 from app.models.student import Student
-from app.models.session import Session as SessionModel
 from app.schemas.attendance import AttendanceCreate, AttendanceUpdate
 
 
@@ -100,11 +100,7 @@ class AttendanceService:
     @staticmethod
     def get_session_attendance(db: Session, session_id: int):
         """Get all attendance records for a session."""
-        records = (
-            db.query(AttendanceRecord)
-            .filter(AttendanceRecord.session_id == session_id)
-            .all()
-        )
+        records = db.query(AttendanceRecord).filter(AttendanceRecord.session_id == session_id).all()
         return records
 
     @staticmethod

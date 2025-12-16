@@ -25,8 +25,10 @@ echo ""
 
 # Container status
 echo -e "${YELLOW}🐳 Container Status:${NC}"
-if docker-compose ps 2>/dev/null | grep -q "smartpresence"; then
-  docker-compose ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || log_error "Failed to get container status"
+# Detect compose command (v2 preferred)
+if docker compose version >/dev/null 2>&1; then COMPOSE_CMD=(docker compose); else COMPOSE_CMD=(docker-compose); fi
+if "${COMPOSE_CMD[@]}" ps 2>/dev/null | grep -q "smartpresence"; then
+  "${COMPOSE_CMD[@]}" ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || log_error "Failed to get container status"
 else
   log_warn "No containers running"
   echo "   Run: ./scripts/start.sh"
@@ -82,8 +84,8 @@ fi
 
 # PostgreSQL connectivity
 echo -n "   PostgreSQL (5432): "
-if docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
-  TABLES=$(docker-compose exec -T postgres psql -U postgres -d smartpresence -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo "?")
+if "${COMPOSE_CMD[@]}" exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+  TABLES=$("${COMPOSE_CMD[@]}" exec -T postgres psql -U postgres -d smartpresence -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo "?")
   log_success "Connected ($TABLES tables)"
 else
   log_error "Not responding"
@@ -92,8 +94,8 @@ fi
 
 # Redis connectivity
 echo -n "   Redis (6379): "
-if docker-compose exec -T redis redis-cli ping > /dev/null 2>&1; then
-  INFO=$(docker-compose exec -T redis redis-cli info 2>/dev/null | grep "used_memory_human" | cut -d: -f2 | tr -d '\r')
+if "${COMPOSE_CMD[@]}" exec -T redis redis-cli ping > /dev/null 2>&1; then
+  INFO=$("${COMPOSE_CMD[@]}" exec -T redis redis-cli info 2>/dev/null | grep "used_memory_human" | cut -d: -f2 | tr -d '\r')
   log_success "Connected (${INFO:-?} used)"
 else
   log_error "Not responding"
@@ -110,7 +112,7 @@ DISK=$(docker system df 2>/dev/null | tail -1 | awk '{print $4}')
 echo "   Disk Usage: $DISK"
 
 # Container count
-COUNT=$(docker-compose ps -q 2>/dev/null | wc -l)
+COUNT=$("${COMPOSE_CMD[@]}" ps -q 2>/dev/null | wc -l)
 echo "   Running Containers: $COUNT/4"
 
 # Overall status

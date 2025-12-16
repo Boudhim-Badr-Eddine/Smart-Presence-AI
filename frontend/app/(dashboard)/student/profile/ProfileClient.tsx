@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import axios from "axios";
-import { User, Mail, Phone, MapPin, Shield, Save, Lock, Globe, Palette } from "lucide-react";
-import { useUI } from "@/contexts/UIContext";
-import AvatarUpload from "@/components/common/AvatarUpload";
-import { getApiBase } from "@/lib/config";
+import { useEffect, useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { User, Mail, Phone, MapPin, Shield, Save, Lock, Globe, Palette } from 'lucide-react';
+import { useUI } from '@/contexts/UIContext';
+import AvatarUpload from '@/components/common/AvatarUpload';
+import { getApiBase } from '@/lib/config';
 
 type Profile = {
   full_name: string;
@@ -15,27 +15,27 @@ type Profile = {
   city?: string;
   track?: string;
   cohort?: string;
-  language: "fr" | "en";
-  theme: "system" | "light" | "dark";
+  language: 'fr' | 'en';
+  theme: 'system' | 'light' | 'dark';
 };
 
 export default function ProfileClient() {
   const apiBase = getApiBase();
   const { dir, palette, locale, setDir, setPalette, setLocale } = useUI();
-  
+
   const { data: profile } = useQuery({
-    queryKey: ["student-profile"],
+    queryKey: ['student-profile'],
     queryFn: async () => {
       const res = await axios.get(`${apiBase}/api/student/profile`).catch(() => ({
         data: {
-          full_name: "Lamiae Idrissi",
-          email: "lamiae.idrissi@example.com",
-          phone: "+212 612-345678",
-          city: "Casablanca",
-          track: "Développement Web",
-          cohort: "Promo 2025",
-          language: "fr" as const,
-          theme: "system" as const,
+          full_name: 'Lamiae Idrissi',
+          email: 'lamiae.idrissi@example.com',
+          phone: '+212 612-345678',
+          city: 'Casablanca',
+          track: 'Développement Web',
+          cohort: 'Promo 2025',
+          language: 'fr' as const,
+          theme: 'system' as const,
         },
       }));
       return res.data as Profile;
@@ -43,7 +43,7 @@ export default function ProfileClient() {
   });
 
   const [form, setForm] = useState<Profile | null>(null);
-  const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" });
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' });
 
   useEffect(() => {
     if (profile) setForm(profile);
@@ -63,7 +63,7 @@ export default function ProfileClient() {
 
   const handleAvatarUpload = async (file: File) => {
     const formData = new FormData();
-    formData.append("avatar", file);
+    formData.append('avatar', file);
     await axios.post(`${apiBase}/api/student/profile/avatar`, formData);
   };
 
@@ -74,11 +74,14 @@ export default function ProfileClient() {
 
   const handleSavePassword = () => {
     if (passwordForm.next !== passwordForm.confirm) {
-      alert("Les mots de passe ne correspondent pas");
+      alert('Les mots de passe ne correspondent pas');
       return;
     }
-    updatePasswordMutation.mutate({ current_password: passwordForm.current, new_password: passwordForm.next });
-    setPasswordForm({ current: "", next: "", confirm: "" });
+    updatePasswordMutation.mutate({
+      current_password: passwordForm.current,
+      new_password: passwordForm.next,
+    });
+    setPasswordForm({ current: '', next: '', confirm: '' });
   };
 
   if (!form) return <div>Chargement...</div>;
@@ -86,12 +89,16 @@ export default function ProfileClient() {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white">
-        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">Photo de profil</h2>
+        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
+          Photo de profil
+        </h2>
         <AvatarUpload onUpload={handleAvatarUpload} />
       </div>
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white">
-        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">Informations personnelles</h2>
+        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
+          Informations personnelles
+        </h2>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
@@ -126,7 +133,7 @@ export default function ProfileClient() {
             </label>
             <input
               type="tel"
-              value={form.phone || ""}
+              value={form.phone || ''}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
@@ -139,7 +146,7 @@ export default function ProfileClient() {
             </label>
             <input
               type="text"
-              value={form.city || ""}
+              value={form.city || ''}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
@@ -151,7 +158,7 @@ export default function ProfileClient() {
             </label>
             <input
               type="text"
-              value={form.track || ""}
+              value={form.track || ''}
               disabled
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500 light:border-gray-300 light:bg-gray-100 light:text-gray-500"
             />
@@ -163,7 +170,7 @@ export default function ProfileClient() {
             </label>
             <input
               type="text"
-              value={form.cohort || ""}
+              value={form.cohort || ''}
               disabled
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500 light:border-gray-300 light:bg-gray-100 light:text-gray-500"
             />
@@ -176,7 +183,7 @@ export default function ProfileClient() {
           className="mt-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
         >
           <Save className="h-4 w-4" />
-          {updateProfileMutation.isPending ? "Enregistrement..." : "Enregistrer"}
+          {updateProfileMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
         </button>
 
         {updateProfileMutation.isSuccess && (
@@ -192,7 +199,9 @@ export default function ProfileClient() {
       </div>
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white">
-        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">Préférences</h2>
+        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
+          Préférences
+        </h2>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-zinc-300 dark:text-zinc-300 light:text-gray-700 mb-2">
@@ -202,7 +211,7 @@ export default function ProfileClient() {
             <select
               value={locale}
               onChange={(e) => {
-                const newLocale = e.target.value as "fr" | "en";
+                const newLocale = e.target.value as 'fr' | 'en';
                 setLocale(newLocale);
                 setForm({ ...form, language: newLocale });
               }}
@@ -219,7 +228,7 @@ export default function ProfileClient() {
             </label>
             <select
               value={dir}
-              onChange={(e) => setDir(e.target.value as "ltr" | "rtl")}
+              onChange={(e) => setDir(e.target.value as 'ltr' | 'rtl')}
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             >
               <option value="ltr">LTR (Gauche à droite)</option>
@@ -234,7 +243,9 @@ export default function ProfileClient() {
             </label>
             <select
               value={palette}
-              onChange={(e) => setPalette(e.target.value as "blue" | "emerald" | "amber" | "purple")}
+              onChange={(e) =>
+                setPalette(e.target.value as 'blue' | 'emerald' | 'amber' | 'purple')
+              }
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             >
               <option value="blue">Bleu</option>
@@ -294,7 +305,7 @@ export default function ProfileClient() {
             className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-white font-medium hover:bg-amber-700 disabled:opacity-50 transition"
           >
             <Shield className="h-4 w-4" />
-            {updatePasswordMutation.isPending ? "Mise à jour..." : "Mettre à jour"}
+            {updatePasswordMutation.isPending ? 'Mise à jour...' : 'Mettre à jour'}
           </button>
 
           {updatePasswordMutation.isSuccess && (

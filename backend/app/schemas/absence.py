@@ -1,11 +1,13 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class AbsenceCreate(BaseModel):
     """Schema for creating a new absence record"""
+
     student_id: int
     session_id: Optional[int] = None
     absence_date: date
@@ -19,6 +21,7 @@ class AbsenceCreate(BaseModel):
 
 class AbsenceUpdate(BaseModel):
     """Schema for updating an absence record"""
+
     status: Optional[str] = None
     justified: Optional[bool] = None
     justification_text: Optional[str] = None
@@ -30,6 +33,7 @@ class AbsenceUpdate(BaseModel):
 
 class AbsenceReview(BaseModel):
     """Schema for reviewing and approving/rejecting absences"""
+
     justification_status: str  # approved, rejected
     review_notes: Optional[str] = None
     reviewed_by: int
@@ -37,6 +41,7 @@ class AbsenceReview(BaseModel):
 
 class AbsenceOut(BaseModel):
     """Schema for absence record output"""
+
     id: int
     student_id: int
     session_id: Optional[int]
@@ -65,6 +70,7 @@ class AbsenceOut(BaseModel):
 
 class AbsenceSummary(BaseModel):
     """Schema for absence summary stats"""
+
     student_id: int
     total_absence_hours: int
     total_absences: int
@@ -77,6 +83,7 @@ class AbsenceSummary(BaseModel):
 
 class AbsenceListOut(BaseModel):
     """Schema for listing absences with filters"""
+
     id: int
     student_id: int
     absence_date: date
@@ -89,6 +96,7 @@ class AbsenceListOut(BaseModel):
 
 class AbsenceStatistics(BaseModel):
     """Schema for absence statistics and analytics"""
+
     total_hours: int
     average_hours_per_absence: Decimal
     most_common_type: Optional[str]

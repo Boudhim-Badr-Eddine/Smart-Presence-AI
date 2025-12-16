@@ -23,7 +23,9 @@
   right: 0px;
   width: 100px;
   height: 100%;
-  box-shadow: 0 0 10px #f97316, 0 0 5px #f97316;
+  box-shadow:
+    0 0 10px #f97316,
+    0 0 5px #f97316;
   opacity: 1;
   transform: rotate(3deg) translate(0px, -4px);
 }
@@ -35,19 +37,19 @@
 }
 
 /* Palette theming using data attributes */
-[data-palette="blue"] {
+[data-palette='blue'] {
   --brand-bg: 0 0% 100% / 0.05;
   --brand: 199 89% 48%;
 }
-[data-palette="emerald"] {
+[data-palette='emerald'] {
   --brand-bg: 0 0% 100% / 0.05;
   --brand: 145 84% 40%;
 }
-[data-palette="amber"] {
+[data-palette='amber'] {
   --brand-bg: 0 0% 100% / 0.05;
   --brand: 38 92% 50%;
 }
-[data-palette="purple"] {
+[data-palette='purple'] {
   --brand-bg: 0 0% 100% / 0.05;
   --brand: 272 87% 60%;
 }
@@ -85,14 +87,20 @@
 
 body {
   min-height: 100vh;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.15), transparent 45%),
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.15), transparent 45%),
     radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.12), transparent 45%),
     linear-gradient(135deg, rgba(26, 26, 46, 0.8) 0%, rgba(30, 30, 50, 0.7) 100%);
 }
 
 .light body {
-  background: radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.08), transparent 45%),
+  background:
+    radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.08), transparent 45%),
     radial-gradient(circle at 80% 80%, rgba(234, 88, 12, 0.06), transparent 45%),
     linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
 }

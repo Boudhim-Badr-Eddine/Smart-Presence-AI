@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.utils.deps import get_db, get_current_user
-from app.models.user import User
-from app.models.student import Student
-from app.models.session import Session as SessionModel
-from app.models.attendance import AttendanceRecord
 from datetime import datetime, timedelta
-from app.utils.cache import cached_response, response_cache
 from typing import Dict, List
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.models.attendance import AttendanceRecord
+from app.models.session import Session as SessionModel
+from app.models.student import Student
+from app.models.user import User
+from app.utils.cache import cached_response
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["analytics"])
 
@@ -36,7 +38,9 @@ def get_analytics(
         cutoff = cutoff_map.get(range, datetime.now() - timedelta(days=30))
 
         total_students = db.query(Student).filter(Student.academic_status == "active").count()
-        total_sessions = db.query(SessionModel).filter(SessionModel.session_date >= cutoff.date()).count()
+        total_sessions = (
+            db.query(SessionModel).filter(SessionModel.session_date >= cutoff.date()).count()
+        )
 
         # Average attendance rate
         students = db.query(Student).all()
@@ -112,5 +116,7 @@ def _compute_top_absences(db: Session, limit: int = 10) -> List[Dict]:
     )
     result = []
     for s in students:
-        result.append({"student_name": f"{s.first_name} {s.last_name}", "absences": s.total_absence_hours})
+        result.append(
+            {"student_name": f"{s.first_name} {s.last_name}", "absences": s.total_absence_hours}
+        )
     return result

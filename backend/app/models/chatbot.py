@@ -1,5 +1,6 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, JSON, String, Index
+from sqlalchemy import JSON, Boolean, Column, DateTime, Index, Integer, String
 from sqlalchemy.sql import func
+
 from app.db.base import Base
 
 
@@ -29,9 +30,7 @@ class ChatbotConversation(Base):
 class ChatbotMessage(Base):
     __tablename__ = "chatbot_messages"
 
-    __table_args__ = (
-        Index("ix_chatbot_message_conversation", "conversation_id"),
-    )
+    __table_args__ = (Index("ix_chatbot_message_conversation", "conversation_id"),)
 
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, nullable=False)

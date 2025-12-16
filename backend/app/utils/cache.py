@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from threading import Lock
@@ -62,11 +63,18 @@ class RedisCache:
         if not self._client:
             return None
         val = self._client.get(key)
-        return None if val is None else val
+        if val is None:
+            return None
+        try:
+            return json.loads(val)
+        except (ValueError, TypeError):
+            return val
 
     def set(self, key: str, value: Any, ttl: int | None = None):
         if not self._client:
             return
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value)
         self._client.set(key, value, ex=ttl or self.default_ttl)
 
     def invalidate(self, prefix: str | None = None):

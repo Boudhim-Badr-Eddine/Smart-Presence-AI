@@ -2,7 +2,7 @@
  * WebSocket manager for real-time updates.
  * Automatically reconnects and handles subscriptions.
  */
-import { getApiBase } from "./config";
+import { getApiBase } from './config';
 
 type MessageHandler = (data: any) => void;
 type ConnectionHandler = () => void;
@@ -17,60 +17,62 @@ export class WebSocketManager {
   private onDisconnectHandlers: Set<ConnectionHandler> = new Set();
   private isIntentionallyClosed = false;
 
-  constructor(private path: string = "/ws") {}
+  constructor(private path: string = '/ws') {}
 
   connect() {
     if (this.ws?.readyState === WebSocket.OPEN) return;
-    
+
     this.isIntentionallyClosed = false;
-    const wsUrl = getApiBase().replace("http", "ws") + this.path;
-    
+    const wsUrl = getApiBase().replace('http', 'ws') + this.path;
+
     try {
       this.ws = new WebSocket(wsUrl);
-      
+
       this.ws.onopen = () => {
-        console.log("[WS] Connected");
+        console.log('[WS] Connected');
         this.reconnectAttempts = 0;
-        this.onConnectHandlers.forEach(handler => handler());
+        this.onConnectHandlers.forEach((handler) => handler());
       };
-      
+
       this.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
           const { type, data } = message;
-          
+
           const handlers = this.handlers.get(type);
           if (handlers) {
-            handlers.forEach(handler => handler(data));
+            handlers.forEach((handler) => handler(data));
           }
-          
+
           // Broadcast to "all" listeners
-          const allHandlers = this.handlers.get("*");
+          const allHandlers = this.handlers.get('*');
           if (allHandlers) {
-            allHandlers.forEach(handler => handler(message));
+            allHandlers.forEach((handler) => handler(message));
           }
         } catch (error) {
-          console.error("[WS] Parse error:", error);
+          console.error('[WS] Parse error:', error);
         }
       };
-      
+
       this.ws.onerror = (error) => {
-        console.error("[WS] Error:", error);
+        console.error('[WS] Error:', error);
       };
-      
+
       this.ws.onclose = () => {
-        console.log("[WS] Disconnected");
-        this.onDisconnectHandlers.forEach(handler => handler());
-        
+        console.log('[WS] Disconnected');
+        this.onDisconnectHandlers.forEach((handler) => handler());
+
         if (!this.isIntentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
           const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-          console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+          console.log(
+            `[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+          );
           setTimeout(() => this.connect(), delay);
         }
       };
     } catch (error) {
-      console.error("[WS] Connection failed:", error);
+      console.error('[WS] Connection failed:', error);
     }
   }
 
@@ -86,7 +88,7 @@ export class WebSocketManager {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type, data }));
     } else {
-      console.warn("[WS] Not connected, message not sent");
+      console.warn('[WS] Not connected, message not sent');
     }
   }
 
@@ -95,7 +97,7 @@ export class WebSocketManager {
       this.handlers.set(type, new Set());
     }
     this.handlers.get(type)!.add(handler);
-    
+
     // Return unsubscribe function
     return () => {
       const handlers = this.handlers.get(type);
@@ -136,19 +138,15 @@ export function getWebSocketManager(): WebSocketManager {
 /**
  * React hook for WebSocket subscriptions.
  */
-export function useWebSocket(
-  type: string,
-  handler: MessageHandler,
-  enabled = true
-) {
+export function useWebSocket(type: string, handler: MessageHandler, enabled = true) {
   const ws = getWebSocketManager();
-  
-  if (typeof window !== "undefined" && enabled) {
+
+  if (typeof window !== 'undefined' && enabled) {
     // Connect on mount
     if (!ws.isConnected) {
       ws.connect();
     }
-    
+
     // Subscribe and cleanup
     const unsubscribe = ws.subscribe(type, handler);
     return () => {

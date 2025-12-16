@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
-from sqlalchemy.orm import Session
-from app.utils.deps import get_db
-from app.core.config import get_settings
-from app.services.facial_service import facial_service
-from app.models.facial_embedding import FacialEmbedding
-from sqlalchemy import text
 import hashlib
 from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from app.core.config import get_settings
+from app.services.facial_service import facial_service
+from app.utils.deps import get_db
 
 router = APIRouter()
 settings = get_settings()

@@ -1,6 +1,6 @@
-import threading
 import queue
-from typing import Callable, Any
+import threading
+from typing import Any, Callable
 
 
 class TaskQueue:

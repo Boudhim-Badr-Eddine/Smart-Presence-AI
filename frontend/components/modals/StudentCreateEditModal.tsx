@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Modal from "@/components/ui/Modal";
-import InputField from "@/components/form/InputField";
-import SelectField from "@/components/form/SelectField";
-import { FormProvider, useForm } from "react-hook-form";
+import Modal from '@/components/ui/Modal';
+import InputField from '@/components/form/InputField';
+import SelectField from '@/components/form/SelectField';
+import { FormProvider, useForm } from 'react-hook-form';
 
 type StudentFormProps = {
   isOpen: boolean;
@@ -13,9 +13,20 @@ type StudentFormProps = {
   isLoading?: boolean;
 };
 
-export default function StudentCreateEditModal({ isOpen, onClose, onSubmit, initialData, isLoading }: StudentFormProps) {
+export default function StudentCreateEditModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  isLoading,
+}: StudentFormProps) {
   const methods = useForm({
-    defaultValues: initialData ?? { name: "", student_code: "", class_name: "", facial_data_encoded: false },
+    defaultValues: initialData ?? {
+      name: '',
+      student_code: '',
+      class_name: '',
+      facial_data_encoded: false,
+    },
   });
 
   const handleSubmit = methods.handleSubmit((data) => {
@@ -24,7 +35,11 @@ export default function StudentCreateEditModal({ isOpen, onClose, onSubmit, init
   });
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Modifier étudiant" : "Créer un étudiant"}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? 'Modifier étudiant' : 'Créer un étudiant'}
+    >
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField label="Nom complet" name="name" required placeholder="Jean Dupont" />
@@ -33,9 +48,9 @@ export default function StudentCreateEditModal({ isOpen, onClose, onSubmit, init
             label="Classe"
             name="class_name"
             options={[
-              { value: "Class 1", label: "Classe 1" },
-              { value: "Class 2", label: "Classe 2" },
-              { value: "Class 3", label: "Classe 3" },
+              { value: 'Class 1', label: 'Classe 1' },
+              { value: 'Class 2', label: 'Classe 2' },
+              { value: 'Class 3', label: 'Classe 3' },
             ]}
             required
           />
@@ -43,10 +58,12 @@ export default function StudentCreateEditModal({ isOpen, onClose, onSubmit, init
             <input
               type="checkbox"
               id="facial"
-              {...methods.register("facial_data_encoded")}
+              {...methods.register('facial_data_encoded')}
               className="rounded border-white/10 focus:ring-2 focus:ring-amber-600"
             />
-            <label htmlFor="facial" className="text-xs text-zinc-300">Données faciales enrôlées</label>
+            <label htmlFor="facial" className="text-xs text-zinc-300">
+              Données faciales enrôlées
+            </label>
           </div>
           <div className="flex gap-2">
             <button
@@ -54,7 +71,7 @@ export default function StudentCreateEditModal({ isOpen, onClose, onSubmit, init
               disabled={isLoading}
               className="flex-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
             >
-              {isLoading ? "Traitement..." : "Enregistrer"}
+              {isLoading ? 'Traitement...' : 'Enregistrer'}
             </button>
             <button
               type="button"

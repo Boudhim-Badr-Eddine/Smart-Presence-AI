@@ -73,20 +73,24 @@ export function parseAPIError(error: unknown): APIError {
   if (axios.isAxiosError(error)) {
     const axiosError = error as any;
     return {
-      message: axiosError.response?.data?.detail || axiosError.response?.data?.message || axiosError.message || "Request failed",
+      message:
+        axiosError.response?.data?.detail ||
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        'Request failed',
       statusCode: axiosError.response?.status,
       detail: axiosError.response?.data,
     };
   }
-  
+
   if (error instanceof Error) {
     return {
       message: error.message,
     };
   }
-  
+
   return {
-    message: "Unknown error occurred",
+    message: 'Unknown error occurred',
   };
 }
 
@@ -141,7 +145,7 @@ class ApiClient {
   constructor() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     this.client = axios.create({
-      baseURL: `${apiUrl}/api`
+      baseURL: `${apiUrl}/api`,
     });
 
     this.loadToken();
@@ -189,10 +193,10 @@ class ApiClient {
   async listStudents(): Promise<Student[]> {
     const response = await this.client.get<any[]>('/users/');
     if (!Array.isArray(response.data)) return [];
-    
+
     return response.data
-      .filter(u => u.role === 'student')
-      .map(u => ({
+      .filter((u) => u.role === 'student')
+      .map((u) => ({
         id: u.id,
         user_id: u.id,
         student_code: u.username,
@@ -200,24 +204,24 @@ class ApiClient {
         last_name: u.username,
         email: u.email,
         class_name: `DEV101`,
-        attendance_rate: 100
+        attendance_rate: 100,
       }));
   }
 
   async listTrainers(): Promise<Trainer[]> {
     const response = await this.client.get<any[]>('/users/');
     if (!Array.isArray(response.data)) return [];
-    
+
     return response.data
-      .filter(u => u.role === 'trainer')
-      .map(u => ({
+      .filter((u) => u.role === 'trainer')
+      .map((u) => ({
         id: u.id,
         user_id: u.id,
         trainer_code: u.username,
         first_name: u.email.split('@')[0],
         last_name: u.username,
         email: u.email,
-        specialization: 'Web Development'
+        specialization: 'Web Development',
       }));
   }
 
@@ -230,12 +234,12 @@ class ApiClient {
   async listSessions(): Promise<Session[]> {
     const response = await this.client.get<any[]>('/sessions/');
     if (!Array.isArray(response.data)) return [];
-    
-    return response.data.map(s => ({
+
+    return response.data.map((s) => ({
       ...s,
       subject: s.topic,
       date: s.session_date,
-      class_name: `Class ${s.classroom_id}`
+      class_name: `Class ${s.classroom_id}`,
     }));
   }
 
@@ -245,7 +249,7 @@ class ApiClient {
       ...response.data,
       subject: response.data.topic,
       date: response.data.session_date,
-      class_name: `Class ${response.data.classroom_id}`
+      class_name: `Class ${response.data.classroom_id}`,
     };
   }
 
@@ -255,32 +259,36 @@ class ApiClient {
   }
 
   // Attendance endpoints
-  async markAttendance(sessionId: number, studentId: number, status: string): Promise<AttendanceRecord> {
+  async markAttendance(
+    sessionId: number,
+    studentId: number,
+    status: string,
+  ): Promise<AttendanceRecord> {
     const response = await this.client.post<AttendanceRecord>('/attendance', {
       session_id: sessionId,
       student_id: studentId,
-      status
+      status,
     });
     return response.data;
   }
 
   async getStudentSummary(studentId: number, days: number = 30): Promise<AttendanceSummary> {
     const response = await this.client.get<AttendanceSummary>(
-      `/attendance/student/${studentId}/summary?days=${days}`
+      `/attendance/student/${studentId}/summary?days=${days}`,
     );
     return response.data;
   }
 
   async getSessionAttendance(sessionId: number): Promise<AttendanceRecord[]> {
     const response = await this.client.get<{ records: AttendanceRecord[] }>(
-      `/attendance/session/${sessionId}/all`
+      `/attendance/session/${sessionId}/all`,
     );
     return response.data.records || [];
   }
 
   async getClassStats(className: string, days: number = 30): Promise<ClassStats> {
     const response = await this.client.get<ClassStats>(
-      `/attendance/class/${className}/stats?days=${days}`
+      `/attendance/class/${className}/stats?days=${days}`,
     );
     return response.data;
   }
@@ -303,7 +311,7 @@ class ApiClient {
   async exportReport(format: 'csv' | 'excel' | 'pdf', type: string): Promise<Blob> {
     const response = await this.client.get(
       `/reports/attendance/summary?format=${format}&type=${type}`,
-      { responseType: 'blob' }
+      { responseType: 'blob' },
     );
     return response.data;
   }

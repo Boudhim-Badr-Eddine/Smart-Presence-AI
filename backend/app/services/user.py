@@ -1,10 +1,12 @@
+from typing import List, Optional
+
 from sqlalchemy.orm import Session
-from app.models.user import User
+
 from app.models.student import Student
 from app.models.trainer import Trainer
+from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.services.auth import get_password_hash
-from typing import List, Optional
 
 
 class UserService:
@@ -14,9 +16,11 @@ class UserService:
     def create_user(db: Session, payload: UserCreate) -> User:
         """Create a new user (admin only)."""
         # Check if user exists
-        existing = db.query(User).filter(
-            (User.email == payload.email) | (User.username == payload.username)
-        ).first()
+        existing = (
+            db.query(User)
+            .filter((User.email == payload.email) | (User.username == payload.username))
+            .first()
+        )
         if existing:
             return None
 

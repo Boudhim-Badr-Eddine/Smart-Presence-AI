@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { Calendar, Clock, MapPin, User, Download, Plus } from "lucide-react";
-import { getApiBase } from "@/lib/config";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { Calendar, Clock, MapPin, User, Download, Plus } from 'lucide-react';
+import { getApiBase } from '@/lib/config';
 
 const apiBase = getApiBase();
 
@@ -14,7 +14,7 @@ type Event = {
   date: string;
   time?: string;
   location?: string;
-  type: "class" | "exam" | "reminder";
+  type: 'class' | 'exam' | 'reminder';
   description?: string;
 };
 
@@ -22,7 +22,7 @@ export default function CalendarClient() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: events = [] } = useQuery({
-    queryKey: ["student-calendar", currentMonth.getMonth(), currentMonth.getFullYear()],
+    queryKey: ['student-calendar', currentMonth.getMonth(), currentMonth.getFullYear()],
     queryFn: async () => {
       const res = await axios
         .get(`${apiBase}/api/student/calendar`, {
@@ -32,20 +32,20 @@ export default function CalendarClient() {
           data: [
             {
               id: 1,
-              title: "Développement Web",
-              date: "2025-01-15",
-              time: "09:00",
-              location: "A101",
-              type: "class",
-              description: "Cours avec M. Ahmed",
+              title: 'Développement Web',
+              date: '2025-01-15',
+              time: '09:00',
+              location: 'A101',
+              type: 'class',
+              description: 'Cours avec M. Ahmed',
             },
             {
               id: 2,
-              title: "Examen Database",
-              date: "2025-01-20",
-              time: "14:00",
-              location: "B203",
-              type: "exam",
+              title: 'Examen Database',
+              date: '2025-01-20',
+              time: '14:00',
+              location: 'B203',
+              type: 'exam',
             },
           ],
         }));
@@ -71,14 +71,14 @@ export default function CalendarClient() {
 
   const getEventsForDay = (day: number | null) => {
     if (!day) return [];
-    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, "0")}-${String(
-      day
-    ).padStart(2, "0")}`;
+    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(
+      day,
+    ).padStart(2, '0')}`;
     return events.filter((e) => e.date === dateStr);
   };
 
   const days = getDaysInMonth(currentMonth);
-  const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+  const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
   const handlePrevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
@@ -89,37 +89,37 @@ export default function CalendarClient() {
   };
 
   const handleExportGoogle = (event: Event) => {
-    const startDate = `${event.date.replace(/-/g, "")}T${(event.time || "09:00").replace(":", "")}00Z`;
-    const endDate = `${event.date.replace(/-/g, "")}T${(event.time || "10:00").replace(":", "")}00Z`;
+    const startDate = `${event.date.replace(/-/g, '')}T${(event.time || '09:00').replace(':', '')}00Z`;
+    const endDate = `${event.date.replace(/-/g, '')}T${(event.time || '10:00').replace(':', '')}00Z`;
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-      event.title
-    )}&dates=${startDate}/${endDate}&details=${encodeURIComponent(event.description || "")}&location=${encodeURIComponent(
-      event.location || ""
+      event.title,
+    )}&dates=${startDate}/${endDate}&details=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(
+      event.location || '',
     )}`;
-    window.open(url, "_blank");
+    window.open(url, '_blank');
   };
 
   const handleExportOutlook = (event: Event) => {
-    const startDate = `${event.date.replace(/-/g, "")}T${(event.time || "09:00").replace(":", "")}00`;
-    const endDate = `${event.date.replace(/-/g, "")}T${(event.time || "10:00").replace(":", "")}00`;
+    const startDate = `${event.date.replace(/-/g, '')}T${(event.time || '09:00').replace(':', '')}00`;
+    const endDate = `${event.date.replace(/-/g, '')}T${(event.time || '10:00').replace(':', '')}00`;
     const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&subject=${encodeURIComponent(
-      event.title
-    )}&startdt=${startDate}&enddt=${endDate}&body=${encodeURIComponent(event.description || "")}&location=${encodeURIComponent(
-      event.location || ""
+      event.title,
+    )}&startdt=${startDate}&enddt=${endDate}&body=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(
+      event.location || '',
     )}`;
-    window.open(url, "_blank");
+    window.open(url, '_blank');
   };
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
-      case "class":
-        return "bg-blue-600/20 text-blue-300 border-blue-600/30";
-      case "exam":
-        return "bg-red-600/20 text-red-300 border-red-600/30";
-      case "reminder":
-        return "bg-amber-600/20 text-amber-300 border-amber-600/30";
+      case 'class':
+        return 'bg-blue-600/20 text-blue-300 border-blue-600/30';
+      case 'exam':
+        return 'bg-red-600/20 text-red-300 border-red-600/30';
+      case 'reminder':
+        return 'bg-amber-600/20 text-amber-300 border-amber-600/30';
       default:
-        return "bg-zinc-600/20 text-zinc-300 border-zinc-600/30";
+        return 'bg-zinc-600/20 text-zinc-300 border-zinc-600/30';
     }
   };
 
@@ -134,7 +134,7 @@ export default function CalendarClient() {
             ←
           </button>
           <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900">
-            {currentMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+            {currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
           </h2>
           <button
             onClick={handleNextMonth}
@@ -164,19 +164,21 @@ export default function CalendarClient() {
                 key={i}
                 className={`min-h-[100px] rounded-lg border p-2 ${
                   day
-                    ? "border-white/10 bg-white/2 dark:border-white/10 dark:bg-white/2 light:border-gray-200 light:bg-gray-50"
-                    : "border-transparent"
+                    ? 'border-white/10 bg-white/2 dark:border-white/10 dark:bg-white/2 light:border-gray-200 light:bg-gray-50'
+                    : 'border-transparent'
                 }`}
               >
                 {day && (
                   <>
-                    <div className="text-sm font-medium text-white dark:text-white light:text-gray-900 mb-1">{day}</div>
+                    <div className="text-sm font-medium text-white dark:text-white light:text-gray-900 mb-1">
+                      {day}
+                    </div>
                     <div className="space-y-1">
                       {dayEvents.slice(0, 2).map((event) => (
                         <div
                           key={event.id}
                           className={`text-xs rounded px-1 py-0.5 border truncate cursor-pointer ${getEventTypeColor(
-                            event.type
+                            event.type,
                           )}`}
                           title={event.title}
                         >
@@ -198,9 +200,13 @@ export default function CalendarClient() {
       </div>
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white">
-        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">Événements à venir</h2>
+        <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
+          Événements à venir
+        </h2>
         {events.length === 0 ? (
-          <p className="text-zinc-400 dark:text-zinc-400 light:text-gray-600 text-center py-8">Aucun événement ce mois-ci</p>
+          <p className="text-zinc-400 dark:text-zinc-400 light:text-gray-600 text-center py-8">
+            Aucun événement ce mois-ci
+          </p>
         ) : (
           <div className="space-y-3">
             {events.slice(0, 5).map((event) => (
@@ -210,10 +216,18 @@ export default function CalendarClient() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getEventTypeColor(event.type)}`}>
-                      {event.type === "class" ? "Cours" : event.type === "exam" ? "Examen" : "Rappel"}
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium border ${getEventTypeColor(event.type)}`}
+                    >
+                      {event.type === 'class'
+                        ? 'Cours'
+                        : event.type === 'exam'
+                          ? 'Examen'
+                          : 'Rappel'}
                     </span>
-                    <h3 className="font-medium text-white dark:text-white light:text-gray-900 truncate">{event.title}</h3>
+                    <h3 className="font-medium text-white dark:text-white light:text-gray-900 truncate">
+                      {event.title}
+                    </h3>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
                     <span className="flex items-center gap-1">

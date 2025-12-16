@@ -11,7 +11,7 @@ interface DataTableWithBulkProps {
   isLoading?: boolean;
   currentPage?: number;
   totalPages?: number;
-  onPageChange?: (page: number) =>void;
+  onPageChange?: (page: number) => void;
   onBulkDelete?: (selectedIds: number[]) => void;
   onBulkExport?: (selectedIds: number[]) => void;
   getRowId?: (row: any) => number;
@@ -109,7 +109,8 @@ export default function DataTableWithBulk({
       {selectedIds.size > 0 && (
         <div className="flex items-center justify-between rounded-lg border border-amber-600/30 bg-amber-600/10 px-4 py-3">
           <span className="text-sm font-medium text-white">
-            {selectedIds.size} élément{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            {selectedIds.size} élément{selectedIds.size > 1 ? 's' : ''} sélectionné
+            {selectedIds.size > 1 ? 's' : ''}
           </span>
           <div className="flex gap-2">
             {onBulkExport && (
@@ -154,17 +155,13 @@ export default function DataTableWithBulk({
             ))}
           </thead>
         </table>
-        <div
-          ref={parentRef}
-          className="max-h-[70vh] overflow-y-auto"
-          role="rowgroup"
-        >
+        <div ref={parentRef} className="max-h-[70vh] overflow-y-auto" role="rowgroup">
           {isLoading ? (
             <div className="px-4 py-8 text-center text-zinc-400">Chargement...</div>
           ) : data.length === 0 ? (
             <div className="px-4 py-8 text-center text-zinc-400">Aucune donnée</div>
           ) : enableVirtual ? (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const row = rows[virtualRow.index];
                 return (

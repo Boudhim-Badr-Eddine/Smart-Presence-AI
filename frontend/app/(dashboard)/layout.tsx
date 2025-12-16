@@ -1,24 +1,20 @@
-"use client";
+'use client';
 
-import RoleNavBar from "@/components/common/RoleNavBar";
-import CommandPalette from "@/components/CommandPalette";
-import ConnectionStatus from "@/components/ConnectionStatus";
-import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { LoadingOverlay } from "@/components/ui/spinner";
+import RoleNavBar from '@/components/common/RoleNavBar';
+import CommandPalette from '@/components/CommandPalette';
+import ConnectionStatus from '@/components/ConnectionStatus';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { LoadingOverlay } from '@/components/ui/spinner';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/auth/login");
+      router.push('/auth/login');
     }
   }, [user, isLoading, router]);
 
@@ -35,9 +31,7 @@ export default function DashboardLayout({
       <RoleNavBar />
       <CommandPalette />
       <ConnectionStatus />
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        {children}
-      </main>
+      <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );
 }

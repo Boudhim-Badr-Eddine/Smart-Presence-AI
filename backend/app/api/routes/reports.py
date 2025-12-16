@@ -1,11 +1,12 @@
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from app.services.report import ReportService
-from app.utils.deps import get_db, get_current_user
+
 from app.models.user import User
+from app.services.report import ReportService
+from app.utils.deps import get_current_user, get_db
 from app.utils.task_queue import task_queue
-from io import BytesIO
 
 router = APIRouter(tags=["reports"])
 
@@ -74,7 +75,8 @@ def get_class_analytics(
     """Get class analytics and statistics."""
     if current_user.role not in ["admin", "trainer"]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only admin/trainer can view class analytics"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin/trainer can view class analytics",
         )
 
     analytics = ReportService.generate_class_analytics(db, class_name)

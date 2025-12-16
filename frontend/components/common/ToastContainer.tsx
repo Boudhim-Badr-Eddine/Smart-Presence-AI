@@ -1,8 +1,8 @@
-"use client";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+'use client';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-type ToastType = "success" | "error" | "info" | "warning";
+type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastProps {
   id: string;
@@ -13,10 +13,10 @@ interface ToastProps {
 
 const Toast = ({ message, type, onClose }: ToastProps) => {
   const colors = {
-    success: "bg-emerald-600/90 text-white",
-    error: "bg-red-600/90 text-white",
-    info: "bg-blue-600/90 text-white",
-    warning: "bg-amber-600/90 text-white",
+    success: 'bg-emerald-600/90 text-white',
+    error: 'bg-red-600/90 text-white',
+    info: 'bg-blue-600/90 text-white',
+    warning: 'bg-amber-600/90 text-white',
   };
 
   return (
@@ -48,10 +48,10 @@ const toastState: { items: ToastItem[]; listeners: Array<(items: ToastItem[]) =>
 };
 
 export const toast = {
-  success: (message: string) => addToast(message, "success"),
-  error: (message: string) => addToast(message, "error"),
-  info: (message: string) => addToast(message, "info"),
-  warning: (message: string) => addToast(message, "warning"),
+  success: (message: string) => addToast(message, 'success'),
+  error: (message: string) => addToast(message, 'error'),
+  info: (message: string) => addToast(message, 'info'),
+  warning: (message: string) => addToast(message, 'warning'),
 };
 
 function addToast(message: string, type: ToastType) {
@@ -69,7 +69,7 @@ function removeToast(id: string) {
 export default function ToastContainer() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  if (typeof window !== "undefined" && !toastState.listeners.includes(setToasts)) {
+  if (typeof window !== 'undefined' && !toastState.listeners.includes(setToasts)) {
     toastState.listeners.push(setToasts);
   }
 

@@ -1,11 +1,9 @@
 from datetime import datetime
+
 from sqlalchemy.orm import Session
+
 from app.models.notification import Notification
 from app.schemas.notification import NotificationCreate
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Optional
 
 
 class NotificationService:
@@ -48,11 +46,7 @@ class NotificationService:
     @staticmethod
     def mark_as_read(db: Session, notification_id: int) -> Notification:
         """Mark notification as read."""
-        notification = (
-            db.query(Notification)
-            .filter(Notification.id == notification_id)
-            .first()
-        )
+        notification = db.query(Notification).filter(Notification.id == notification_id).first()
         if notification:
             notification.read = True
             notification.read_at = datetime.now()
@@ -69,9 +63,7 @@ class NotificationService:
         db.commit()
 
     @staticmethod
-    def send_email(
-        recipient: str, subject: str, body: str, is_html: bool = False
-    ) -> bool:
+    def send_email(recipient: str, subject: str, body: str, is_html: bool = False) -> bool:
         """Send email notification (stub)."""
         try:
             # TODO: Configure SMTP server (SendGrid, AWS SES, etc.)

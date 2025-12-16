@@ -19,12 +19,12 @@ TEST_TARGET="${1:-all}"
 
 run_backend_tests() {
     echo -e "${YELLOW}Running backend tests (pytest)...${NC}"
-    docker-compose exec -T backend pytest -v || return 1
+    docker-compose exec -T backend pytest -v --tb=short || return 1
 }
 
 run_frontend_tests() {
-    echo -e "${YELLOW}Running frontend tests (jest)...${NC}"
-    docker-compose exec -T frontend npm test -- --passWithNoTests || return 1
+    echo -e "${YELLOW}Running frontend tests...${NC}"
+    docker-compose exec -T frontend npm test || return 1
 }
 
 case "$TEST_TARGET" in

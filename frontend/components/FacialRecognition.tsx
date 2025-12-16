@@ -10,7 +10,11 @@ interface FacialRecognitionProps {
   onComplete?: (success: boolean, message: string) => void;
 }
 
-export default function FacialRecognition({ userId, mode = 'verify', onComplete }: FacialRecognitionProps) {
+export default function FacialRecognition({
+  userId,
+  mode = 'verify',
+  onComplete,
+}: FacialRecognitionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -24,7 +28,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
   useEffect(() => {
     return () => {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [stream]);
@@ -38,7 +42,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
     try {
       setError(null);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -46,14 +50,14 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
       }
       setCameraActive(true);
     } catch (err) {
-      setError('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+      setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
       console.error('Camera error:', err);
     }
   };
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
     setCameraActive(false);
@@ -67,7 +71,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
         canvasRef.current.height = videoRef.current.videoHeight;
         context.drawImage(videoRef.current, 0, 0);
         const photoData = canvasRef.current.toDataURL('image/jpeg');
-        setPhotos(prev => [...prev, photoData]);
+        setPhotos((prev) => [...prev, photoData]);
 
         if (mode === 'enroll' && photos.length + 1 >= photosRequired) {
           setTimeout(() => {
@@ -93,7 +97,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
       formData.append('user_id', userId.toString());
 
       // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       setSuccess(true);
       setPhotos([]);
@@ -102,10 +106,10 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
         onComplete(true, 'Inscription faciale réussie!');
       }
     } catch (err) {
-      setError('Erreur lors de l\'inscription faciale');
+      setError("Erreur lors de l'inscription faciale");
       console.error('Enroll error:', err);
       if (onComplete) {
-        onComplete(false, 'Erreur lors de l\'inscription');
+        onComplete(false, "Erreur lors de l'inscription");
       }
     } finally {
       setLoading(false);
@@ -132,7 +136,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
       formData.append('user_id', userId.toString());
 
       // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       setSuccess(true);
       setPhotos([]);
@@ -152,7 +156,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
   };
 
   const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (success) {
@@ -165,9 +169,7 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
           {mode === 'enroll' ? 'Inscription réussie!' : 'Vérification réussie!'}
         </h3>
         <p className="text-white/60 text-sm">
-          {mode === 'enroll' 
-            ? 'Votre visage a été enregistré avec succès.' 
-            : 'Accès autorisé.'}
+          {mode === 'enroll' ? 'Votre visage a été enregistré avec succès.' : 'Accès autorisé.'}
         </p>
       </div>
     );
@@ -212,11 +214,22 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
       {/* Photos Captured */}
       {photos.length > 0 && (
         <div>
-          <p className="text-sm text-white/60 mb-2">Photos capturées: {photos.length}/{photosRequired}</p>
+          <p className="text-sm text-white/60 mb-2">
+            Photos capturées: {photos.length}/{photosRequired}
+          </p>
           <div className="grid grid-cols-5 gap-2">
             {photos.map((photo, index) => (
-              <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
-                <Image src={photo} alt={`capture-${index}`} fill className="object-cover" loading="lazy" />
+              <div
+                key={index}
+                className="relative aspect-square rounded-lg overflow-hidden border border-white/10"
+              >
+                <Image
+                  src={photo}
+                  alt={`capture-${index}`}
+                  fill
+                  className="object-cover"
+                  loading="lazy"
+                />
                 <button
                   onClick={() => removePhoto(index)}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 hover:opacity-100 transition"
@@ -226,7 +239,10 @@ export default function FacialRecognition({ userId, mode = 'verify', onComplete 
               </div>
             ))}
             {Array.from({ length: photosRequired - photos.length }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-square rounded-lg border border-white/10 border-dashed flex items-center justify-center bg-white/5">
+              <div
+                key={`empty-${i}`}
+                className="aspect-square rounded-lg border border-white/10 border-dashed flex items-center justify-center bg-white/5"
+              >
                 <span className="text-white/30 text-xs">+{photosRequired - photos.length - i}</span>
               </div>
             ))}

@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from app.utils.deps import get_db
+
 from app.models.user import User
 from app.services.auth import get_current_user
 from app.services.import_service import ImportService
-from app.utils.cache import response_cache, redis_cache
+from app.utils.cache import redis_cache, response_cache
+from app.utils.deps import get_db
 from app.utils.task_queue import task_queue
 
 router = APIRouter(tags=["imports"])
@@ -29,7 +30,9 @@ async def bulk_import(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can import data")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can import data"
+        )
 
     if entity not in ImportService.SUPPORTED_ENTITIES:
         raise HTTPException(status_code=400, detail="Unsupported entity")

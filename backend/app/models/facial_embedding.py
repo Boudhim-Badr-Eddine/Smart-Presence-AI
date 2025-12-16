@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, Index
+from sqlalchemy import Boolean, Column, Index, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import VARCHAR
+
 from app.db.base import Base
 
 
@@ -17,7 +18,7 @@ class FacialEmbedding(Base):
     image_path = Column(String(255), nullable=False)
     image_hash = Column(String(64))
     confidence_score = Column(Numeric(5, 4))
-    embedding_model = Column(VARCHAR(50), default='insightface')
+    embedding_model = Column(VARCHAR(50), default="insightface")
     is_primary = Column(Boolean, default=False)
     capture_angle = Column(VARCHAR(20))
     lighting_conditions = Column(VARCHAR(50))

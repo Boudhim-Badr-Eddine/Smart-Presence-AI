@@ -1,9 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas.chatbot import ChatbotMessageCreate, ChatbotMessageOut, ChatbotConversationStart, ChatbotConversationOut
-from app.services.chatbot import ChatbotService
-from app.utils.deps import get_db, get_current_user
+
 from app.models.user import User
+from app.schemas.chatbot import (
+    ChatbotConversationOut,
+    ChatbotMessageOut,
+    ChatbotAskIn,
+)
+from app.services.chatbot import ChatbotService
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["chatbot"])
 
@@ -77,11 +82,19 @@ def set_satisfaction(
 
 @router.post("/ask")
 def ask_quick(
-    question: str,
+    question: str | None = None,
+    payload: ChatbotAskIn | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Quick ask endpoint (no conversation tracking)."""
-    response_text = ChatbotService.generate_response(question)
-    intent = ChatbotService.detect_intent(question)
-    return {"question": question, "reply": response_text, "intent": intent}
+    """Quick ask endpoint (no conversation tracking).
+
+    Supports both query param `question` and JSON body `{ "question": "..." }`.
+    """
+    q = question or (payload.question if payload else None)
+    if not q:
+        raise HTTPException(status_code=422, detail="Field 'question' is required")
+    response_text = ChatbotService.generate_response(q)
+    intent = ChatbotService.detect_intent(q)
+    # For frontend compatibility, return 'response' key
+    return {"question": q, "response": response_text, "intent": intent}

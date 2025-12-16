@@ -188,9 +188,6 @@ Enter admin password: ********
 - Reports code quality issues and potential bugs
 
 **When to use:** Before committing, during code review, CI/CD pipeline
-
----
-
 ### `test.sh`
 **Purpose:** Run automated tests (pytest for backend, jest for frontend)
 
@@ -202,7 +199,6 @@ Enter admin password: ********
 # Run backend tests only
 ./scripts/test.sh backend
 
-# Run frontend tests only
 ./scripts/test.sh frontend
 ```
 
@@ -213,14 +209,9 @@ Enter admin password: ********
 
 **When to use:** Before merging code, verifying changes don't break existing functionality
 
----
-
-## 📋 Quick Workflows
-
 ### First-Time Setup
 ```bash
 # 1. Start services
-./scripts/start.sh
 
 # 2. Wait for services to be ready (check status)
 ./scripts/status.sh

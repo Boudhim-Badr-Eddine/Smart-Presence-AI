@@ -1,33 +1,111 @@
 'use client';
 
-import { useMemo, useRef, useState, type ComponentType } from 'react';
+import { useRef, useState, type ComponentType } from 'react';
 import dynamicImport from 'next/dynamic';
 import Link from 'next/link';
-import { Shield, Smile, Sparkles, Camera } from 'lucide-react';
+import { Shield, Smile, Sparkles, Camera, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { LoadingButton } from '@/components/ui/spinner';
+import { getApiBase } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
 const Webcam = dynamicImport(
   () => import('react-webcam').then((mod) => mod.default as unknown as ComponentType<any>),
-  { ssr: false }
+  { ssr: false },
 );
 
 const tabs = [
   { key: 'password', label: 'Mot de passe' },
-  { key: 'facial', label: 'Reconnaissance faciale' }
+  { key: 'facial', label: 'Reconnaissance faciale' },
 ];
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'password' | 'facial'>('password');
-  const videoConstraints = useMemo(() => ({ width: 480, height: 320, facingMode: 'user' }), []);
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const webcamRef = useRef<any>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [webcamReady, setWebcamReady] = useState(false);
+  const apiBase = getApiBase();
+
+  const handleCapture = async () => {
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        setError('Canvas non disponible.');
+        return;
+      }
+
+      const video = webcamRef.current?.video;
+      if (!video || !video.readyState || video.readyState !== 4) {
+        setError('Vidéo non prête. Attendez quelques secondes.');
+        return;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setError('Erreur contexte canvas.');
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+      
+      const b64 = canvas.toDataURL('image/jpeg', 0.9);
+      if (b64 && b64.length > 100) {
+        setPhoto(b64);
+        setError(null);
+      } else {
+        setError('Capture vide. Réessayez.');
+      }
+    } catch (e) {
+      setError('Erreur capture: ' + String(e).slice(0, 50));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      if (mode === 'password') {
+        await login(email, password);
+      } else {
+        if (!photo) {
+          throw new Error('Veuillez capturer votre visage.');
+        }
+        const res = await fetch(`${apiBase}/api/auth/login/facial`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            image_base64: photo,
+            confidence_threshold: 0.85,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
+          throw new Error(j?.detail || 'Connexion faciale échouée');
+        }
+        const data = await res.json();
+        if (data?.access_token) {
+          localStorage.setItem('spa_access_token', data.access_token);
+          localStorage.setItem('token', data.access_token);
+          window.location.href = '/';
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Erreur connexion');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen px-4 py-10">
@@ -39,7 +117,9 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Smart Presence AI</h1>
-              <p className="text-white/60">Choisissez votre méthode : email + mot de passe ou email + visage.</p>
+              <p className="text-white/60">
+                Choisissez votre méthode : email + mot de passe ou email + visage.
+              </p>
             </div>
 
             <div className="flex gap-2 rounded-full bg-white/5 p-1 text-sm">
@@ -54,40 +134,7 @@ export default function LoginPage() {
               ))}
             </div>
 
-            <form
-              className="space-y-4"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setError(null);
-                setLoading(true);
-                try {
-                  if (mode === 'password') {
-                    await login(email, password);
-                  } else {
-                    const screenshot = webcamRef.current?.getScreenshot?.();
-                    if (!screenshot) {
-                      throw new Error('Veuillez capturer votre visage à droite');
-                    }
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login/facial`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ email, image_base64: screenshot, confidence_threshold: 0.85 })
-                    });
-                    if (!res.ok) {
-                      const j = await res.json().catch(() => ({}));
-                      throw new Error(j?.detail || 'Échec de la connexion faciale');
-                    }
-                    const token = await res.json();
-                    localStorage.setItem('token', token?.access_token);
-                    // Redirect handled by app's auth flow if present
-                  }
-                } catch (err: any) {
-                  setError(err?.message ?? 'Erreur de connexion');
-                } finally {
-                  setLoading(false);
-                }
-              }}
-            >
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
                 <label className="text-sm text-white/70">Adresse e-mail</label>
                 <input
@@ -116,12 +163,14 @@ export default function LoginPage() {
                       <input type="checkbox" className="rounded border-white/20 bg-transparent" />
                       Se souvenir de moi
                     </label>
-                    <a className="text-amber-300" href="#">Mot de passe oublié ?</a>
+                    <a className="text-amber-300" href="#">
+                      Mot de passe oublié ?
+                    </a>
                   </div>
                 </div>
               ) : null}
 
-              {error && <div className="text-sm text-rose-300">{error}</div>}
+              {error && <div className="rounded bg-rose-900/30 border border-rose-500/30 px-3 py-2 text-sm text-rose-300">{error}</div>}
               <LoadingButton type="submit" className="btn-primary w-full" loading={loading}>
                 Se connecter
               </LoadingButton>
@@ -139,12 +188,75 @@ export default function LoginPage() {
             {mode === 'facial' ? (
               <>
                 <p className="text-white/70">
-                  Capturez votre visage pour vous identifier. Assurez-vous que votre visage est bien éclairé et visible.
+                  Capturez votre visage pour vous identifier. Assurez-vous que votre visage est bien
+                  éclairé et visible.
                 </p>
                 <div className="space-y-3">
-                  <div className="overflow-hidden rounded-xl border-2 border-primary-500/50 bg-white/5">
-                    <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" videoConstraints={videoConstraints} className="aspect-video w-full" />
+                  <div className="overflow-hidden rounded-xl border-2 border-primary-500/50 bg-black">
+                    {photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photo} alt="Capture" className="w-full aspect-video object-cover" />
+                    ) : (
+                      <div className="relative aspect-video w-full bg-black">
+                        <Webcam
+                          ref={webcamRef}
+                          audio={false}
+                          screenshotFormat="image/jpeg"
+                          videoConstraints={{ width: 480, height: 360, facingMode: 'user' }}
+                          className="w-full h-full"
+                          onUserMedia={() => {
+                            setWebcamReady(true);
+                            setError(null);
+                          }}
+                          onUserMediaError={() => {
+                            setWebcamReady(false);
+                            setError('Caméra refusée. Vérifiez les permissions.');
+                          }}
+                        />
+                        {!webcamReady && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+                            <p className="text-sm text-white text-center">
+                              Caméra chargement...<br />
+                              <span className="text-xs text-white/60">Cliquez pour autoriser</span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
+                  <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  
+                  <div className="flex gap-2">
+                    {!photo ? (
+                      <button
+                        type="button"
+                        disabled={!webcamReady}
+                        onClick={handleCapture}
+                        className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {webcamReady ? 'Capturer' : 'Chargement...'}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setPhoto(null)}
+                          className="btn-outline flex-1"
+                        >
+                          <RotateCcw size={14} className="mr-1" /> Reprendre
+                        </button>
+                        <LoadingButton
+                          type="submit"
+                          className="btn-primary flex-1"
+                          loading={loading}
+                          onClick={handleSubmit}
+                        >
+                          Valider
+                        </LoadingButton>
+                      </>
+                    )}
+                  </div>
+
                   <div className="flex gap-2 text-xs text-white/60">
                     <Badge icon={<Shield size={14} />}>Seuil 0.85</Badge>
                     <Badge icon={<Smile size={14} />}>Anti-spoof basique</Badge>
@@ -154,7 +266,8 @@ export default function LoginPage() {
             ) : (
               <>
                 <p className="text-white/70">
-                  L'authentification faciale est utilisée uniquement pour la connexion. Le pointage de présence reste manuel ou validé par le formateur.
+                  L'authentification faciale est utilisée uniquement pour la connexion. Le pointage
+                  de présence reste manuel ou validé par le formateur.
                 </p>
                 <div className="rounded-lg border border-white/5 bg-white/5 p-4 text-sm text-white/70">
                   <p className="font-semibold text-white">Flux simple</p>
@@ -166,7 +279,9 @@ export default function LoginPage() {
                 </div>
               </>
             )}
-            <Link href="/" className="text-sm text-amber-300">Retour à l'accueil</Link>
+            <Link href="/" className="text-sm text-amber-300">
+              Retour à l'accueil
+            </Link>
           </div>
         </div>
       </div>

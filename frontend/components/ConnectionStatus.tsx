@@ -1,11 +1,11 @@
 /**
  * Connection status indicator showing online/offline mode and WebSocket status.
  */
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Wifi, WifiOff, Radio } from "lucide-react";
-import { getWebSocketManager } from "@/lib/websocket";
+import { useState, useEffect } from 'react';
+import { Wifi, WifiOff, Radio } from 'lucide-react';
+import { getWebSocketManager } from '@/lib/websocket';
 
 export default function ConnectionStatus() {
   const [isOnline, setIsOnline] = useState(true);
@@ -14,23 +14,23 @@ export default function ConnectionStatus() {
   useEffect(() => {
     // Monitor online/offline status
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
-    
-    window.addEventListener("online", updateOnlineStatus);
-    window.addEventListener("offline", updateOnlineStatus);
-    
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
     updateOnlineStatus();
 
     // Monitor WebSocket status
     const ws = getWebSocketManager();
-    
+
     const unsubscribeConnect = ws.onConnect(() => setWsConnected(true));
     const unsubscribeDisconnect = ws.onDisconnect(() => setWsConnected(false));
-    
+
     setWsConnected(ws.isConnected);
 
     return () => {
-      window.removeEventListener("online", updateOnlineStatus);
-      window.removeEventListener("offline", updateOnlineStatus);
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
       unsubscribeConnect();
       unsubscribeDisconnect();
     };
@@ -50,10 +50,10 @@ export default function ConnectionStatus() {
       <div
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs shadow-lg transition-all ${
           wsConnected
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-            : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+            : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
         }`}
-        title={wsConnected ? "Temps réel actif" : "Temps réel déconnecté"}
+        title={wsConnected ? 'Temps réel actif' : 'Temps réel déconnecté'}
       >
         {wsConnected ? (
           <>

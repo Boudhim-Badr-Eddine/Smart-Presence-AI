@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.utils.deps import get_db, get_current_user
-from app.models.user import User
-from typing import Dict, List
 from datetime import datetime
+from typing import Dict
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.models.user import User
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["messages"])
 

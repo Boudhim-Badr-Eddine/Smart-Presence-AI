@@ -24,7 +24,7 @@ export default function DataTableFilter({
   filters,
   onFilterChange,
   searchPlaceholder = 'Search...',
-  onSearch
+  onSearch,
 }: DataTableFilterProps) {
   const [activeFilters, setActiveFilters] = useState<{ [key: string]: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,7 +32,7 @@ export default function DataTableFilter({
   const handleFilterChange = (filterKey: string, value: string) => {
     const updated = {
       ...activeFilters,
-      [filterKey]: value === 'all' ? '' : value
+      [filterKey]: value === 'all' ? '' : value,
     };
     setActiveFilters(updated);
     onFilterChange(updated);
@@ -50,7 +50,7 @@ export default function DataTableFilter({
     onSearch?.('');
   };
 
-  const hasActiveFilters = Object.values(activeFilters).some(v => v !== '') || searchQuery !== '';
+  const hasActiveFilters = Object.values(activeFilters).some((v) => v !== '') || searchQuery !== '';
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
@@ -78,7 +78,7 @@ export default function DataTableFilter({
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All</option>
-              {filterConfig.options.map(opt => (
+              {filterConfig.options.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Modal from "@/components/ui/Modal";
-import InputField from "@/components/form/InputField";
-import SelectField from "@/components/form/SelectField";
-import { FormProvider, useForm } from "react-hook-form";
+import Modal from '@/components/ui/Modal';
+import InputField from '@/components/form/InputField';
+import SelectField from '@/components/form/SelectField';
+import { FormProvider, useForm } from 'react-hook-form';
 
 type TrainerFormProps = {
   isOpen: boolean;
@@ -13,9 +13,15 @@ type TrainerFormProps = {
   isLoading?: boolean;
 };
 
-export default function TrainerCreateEditModal({ isOpen, onClose, onSubmit, initialData, isLoading }: TrainerFormProps) {
+export default function TrainerCreateEditModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  isLoading,
+}: TrainerFormProps) {
   const methods = useForm({
-    defaultValues: initialData ?? { name: "", email: "", subjects: [] },
+    defaultValues: initialData ?? { name: '', email: '', subjects: [] },
   });
 
   const handleSubmit = methods.handleSubmit((data) => {
@@ -24,19 +30,29 @@ export default function TrainerCreateEditModal({ isOpen, onClose, onSubmit, init
   });
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Modifier formateur" : "Créer un formateur"}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? 'Modifier formateur' : 'Créer un formateur'}
+    >
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField label="Nom complet" name="name" required placeholder="Marie Martin" />
-          <InputField label="Email" name="email" type="email" required placeholder="marie@example.com" />
+          <InputField
+            label="Email"
+            name="email"
+            type="email"
+            required
+            placeholder="marie@example.com"
+          />
           <SelectField
             label="Matière principale"
             name="subjects"
             options={[
-              { value: "Math", label: "Mathématiques" },
-              { value: "Science", label: "Sciences" },
-              { value: "English", label: "Anglais" },
-              { value: "French", label: "Français" },
+              { value: 'Math', label: 'Mathématiques' },
+              { value: 'Science', label: 'Sciences' },
+              { value: 'English', label: 'Anglais' },
+              { value: 'French', label: 'Français' },
             ]}
             required
           />
@@ -46,7 +62,7 @@ export default function TrainerCreateEditModal({ isOpen, onClose, onSubmit, init
               disabled={isLoading}
               className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
             >
-              {isLoading ? "Traitement..." : "Enregistrer"}
+              {isLoading ? 'Traitement...' : 'Enregistrer'}
             </button>
             <button
               type="button"

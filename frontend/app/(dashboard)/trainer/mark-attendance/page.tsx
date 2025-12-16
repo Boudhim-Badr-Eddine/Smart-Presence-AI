@@ -99,15 +99,25 @@ export default function MarkAttendance() {
 
   const markPresent = (studentId: number) => {
     setMarkedStudents(new Set([...markedStudents, studentId]));
-    setStudentList(prev => prev.map(s => 
-      s.studentId === studentId ? { ...s, status: 'present', markedAt: new Date().toLocaleTimeString('fr-FR'), justification: undefined, percentage: 100 } : s
-    ));
+    setStudentList((prev) =>
+      prev.map((s) =>
+        s.studentId === studentId
+          ? {
+              ...s,
+              status: 'present',
+              markedAt: new Date().toLocaleTimeString('fr-FR'),
+              justification: undefined,
+              percentage: 100,
+            }
+          : s,
+      ),
+    );
   };
 
   const markAbsent = (studentId: number) => {
-    const student = studentList.find(s => s.studentId === studentId);
+    const student = studentList.find((s) => s.studentId === studentId);
     if (!student) return;
-    
+
     setDialogState({
       open: true,
       studentId,
@@ -118,9 +128,9 @@ export default function MarkAttendance() {
   };
 
   const markLate = (studentId: number) => {
-    const student = studentList.find(s => s.studentId === studentId);
+    const student = studentList.find((s) => s.studentId === studentId);
     if (!student) return;
-    
+
     setDialogState({
       open: true,
       studentId,
@@ -132,19 +142,21 @@ export default function MarkAttendance() {
 
   const handleDialogSubmit = (justification: string, percentage: number) => {
     if (!dialogState.studentId) return;
-    
+
     setMarkedStudents(new Set([...markedStudents, dialogState.studentId]));
-    setStudentList(prev => prev.map(s => 
-      s.studentId === dialogState.studentId 
-        ? { 
-            ...s, 
-            status: dialogState.status, 
-            markedAt: new Date().toLocaleTimeString('fr-FR'), 
-            justification, 
-            percentage 
-          } 
-        : s
-    ));
+    setStudentList((prev) =>
+      prev.map((s) =>
+        s.studentId === dialogState.studentId
+          ? {
+              ...s,
+              status: dialogState.status,
+              markedAt: new Date().toLocaleTimeString('fr-FR'),
+              justification,
+              percentage,
+            }
+          : s,
+      ),
+    );
   };
 
   const handleLogout = () => {
@@ -152,23 +164,30 @@ export default function MarkAttendance() {
     router.push('/auth/login');
   };
 
-  const currentSession = sessions.find(s => s.id === selectedSession);
-  const filteredStudents = studentList.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const currentSession = sessions.find((s) => s.id === selectedSession);
+  const filteredStudents = studentList.filter((s) =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-  const attendanceRate = studentList.length > 0 
-    ? Math.round((markedStudents.size / studentList.length) * 100)
-    : 0;
+  const attendanceRate =
+    studentList.length > 0 ? Math.round((markedStudents.size / studentList.length) * 100) : 0;
 
   if (loading) {
     return <LoadingOverlay text="Chargement des séances..." />;
   }
 
   return (
-    <div className="min-h-screen bg-dark px-6 py-10" role="main" aria-label="Page de marquage de présence">
+    <div
+      className="min-h-screen bg-dark px-6 py-10"
+      role="main"
+      aria-label="Page de marquage de présence"
+    >
       <header className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/trainer" className="text-white/60 hover:text-white transition" aria-label="Retour au tableau de bord du formateur">
+          <Link
+            href="/trainer"
+            className="text-white/60 hover:text-white transition"
+            aria-label="Retour au tableau de bord du formateur"
+          >
             <ArrowLeft size={24} />
           </Link>
           <div>
@@ -176,12 +195,24 @@ export default function MarkAttendance() {
             <h1 className="text-3xl font-bold">Pointage d'assistance</h1>
           </div>
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300 hover:bg-red-500/30" aria-label="Se déconnecter">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300 hover:bg-red-500/30"
+          aria-label="Se déconnecter"
+        >
           <LogOut size={16} /> Déconnexion
         </button>
       </header>
 
-      {error && <div className="mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-red-300 text-sm border border-red-500/20" role="alert" aria-live="polite">{error}</div>}
+      {error && (
+        <div
+          className="mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-red-300 text-sm border border-red-500/20"
+          role="alert"
+          aria-live="polite"
+        >
+          {error}
+        </div>
+      )}
 
       {!selectedSession ? (
         // Session Selection
@@ -189,7 +220,11 @@ export default function MarkAttendance() {
           <div className="px-6 py-4 border-b border-white/10">
             <h2 className="font-semibold text-lg">Sélectionnez une session</h2>
           </div>
-          <div className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-3" role="region" aria-label="Liste des sessions disponibles">
+          <div
+            className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-3"
+            role="region"
+            aria-label="Liste des sessions disponibles"
+          >
             {sessions.map((session) => (
               <button
                 key={session.id}
@@ -199,8 +234,12 @@ export default function MarkAttendance() {
               >
                 <p className="font-semibold">{session.subject}</p>
                 <p className="text-sm text-white/60">{session.class_name}</p>
-                <p className="mt-2 text-xs text-white/50">{new Date(session.date).toLocaleDateString('fr-FR')}</p>
-                <p className="mt-1 text-xs text-white/50">{session.start_time} - {session.end_time}</p>
+                <p className="mt-2 text-xs text-white/50">
+                  {new Date(session.date).toLocaleDateString('fr-FR')}
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  {session.start_time} - {session.end_time}
+                </p>
               </button>
             ))}
           </div>
@@ -224,7 +263,11 @@ export default function MarkAttendance() {
             </div>
 
             <h2 className="mb-6 font-semibold text-lg">Choisissez la méthode de pointage</h2>
-            <div className="grid gap-4 md:grid-cols-3" role="radiogroup" aria-label="Méthodes de marquage de présence">
+            <div
+              className="grid gap-4 md:grid-cols-3"
+              role="radiogroup"
+              aria-label="Méthodes de marquage de présence"
+            >
               {/* QR Code Method */}
               <button
                 onClick={() => handleStartMarking('qr')}
@@ -248,7 +291,9 @@ export default function MarkAttendance() {
               >
                 <Camera className="mx-auto mb-3 text-emerald-300" size={32} />
                 <h3 className="font-semibold">Reconnaissance faciale</h3>
-                <p className="mt-2 text-sm text-white/60">Utiliser la caméra pour reconnaître les visages</p>
+                <p className="mt-2 text-sm text-white/60">
+                  Utiliser la caméra pour reconnaître les visages
+                </p>
               </button>
 
               {/* PIN Method */}
@@ -274,7 +319,14 @@ export default function MarkAttendance() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="font-semibold text-lg">{currentSession?.subject}</p>
-                <p className="text-white/60">Méthode: {markingMethod === 'qr' ? 'Code QR' : markingMethod === 'facial' ? 'Reconnaissance faciale' : 'Code PIN'}</p>
+                <p className="text-white/60">
+                  Méthode:{' '}
+                  {markingMethod === 'qr'
+                    ? 'Code QR'
+                    : markingMethod === 'facial'
+                      ? 'Reconnaissance faciale'
+                      : 'Code PIN'}
+                </p>
               </div>
               <button
                 onClick={() => setMarkingMethod(null)}
@@ -290,12 +342,14 @@ export default function MarkAttendance() {
                 <p className="text-white/60 text-sm">Marqués</p>
               </div>
               <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-400 transition-all duration-300" 
-                  style={{width: `${attendanceRate}%`}}
+                <div
+                  className="h-full bg-emerald-400 transition-all duration-300"
+                  style={{ width: `${attendanceRate}%` }}
                 />
               </div>
-              <p className="text-white/60 text-sm">{markedStudents.size}/{studentList.length} étudiants</p>
+              <p className="text-white/60 text-sm">
+                {markedStudents.size}/{studentList.length} étudiants
+              </p>
             </div>
           </div>
 
@@ -329,7 +383,9 @@ export default function MarkAttendance() {
                       <p className="text-xs text-white/50">Marqué à: {student.markedAt}</p>
                     )}
                     {student.justification && (
-                      <p className="text-xs text-white/60">Justification: {student.justification}</p>
+                      <p className="text-xs text-white/60">
+                        Justification: {student.justification}
+                      </p>
                     )}
                     {student.percentage !== undefined && (
                       <p className="text-xs text-white/60">Pourcentage: {student.percentage}%</p>
@@ -388,12 +444,7 @@ export default function MarkAttendance() {
         </div>
       )}
 
-      {showQRScanner && (
-        <QRScanner
-          onScan={handleQRScan}
-          onClose={() => setShowQRScanner(false)}
-        />
-      )}
+      {showQRScanner && <QRScanner onScan={handleQRScan} onClose={() => setShowQRScanner(false)} />}
 
       <AttendanceDialog
         open={dialogState.open}
@@ -409,13 +460,15 @@ export default function MarkAttendance() {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    'present': 'bg-emerald-400/20 text-emerald-300',
-    'absent': 'bg-rose-400/20 text-rose-300',
-    'late': 'bg-amber-400/20 text-amber-300',
-    'excused': 'bg-blue-400/20 text-blue-300'
+    present: 'bg-emerald-400/20 text-emerald-300',
+    absent: 'bg-rose-400/20 text-rose-300',
+    late: 'bg-amber-400/20 text-amber-300',
+    excused: 'bg-blue-400/20 text-blue-300',
   };
   return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${colors[status] || colors['present']}`}>
+    <span
+      className={`px-2 py-1 rounded text-xs font-medium ${colors[status] || colors['present']}`}
+    >
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );

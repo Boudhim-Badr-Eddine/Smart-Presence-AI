@@ -26,9 +26,7 @@ export default function Error({
           <p className="mt-2 text-zinc-400 dark:text-zinc-400 light:text-gray-600">
             Désolé, quelque chose s'est mal passé. Veuillez réessayer.
           </p>
-          {error.digest && (
-            <p className="mt-1 text-xs text-zinc-500">Digest: {error.digest}</p>
-          )}
+          {error.digest && <p className="mt-1 text-xs text-zinc-500">Digest: {error.digest}</p>}
         </div>
 
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

@@ -1,28 +1,26 @@
-from io import BytesIO, StringIO
+import csv
 from datetime import datetime, timedelta
+from io import BytesIO, StringIO
+
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy.orm import Session
+
 from app.models.attendance import AttendanceRecord
 from app.models.student import Student
-from app.models.session import Session as SessionModel
-from typing import List
-import csv
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 
 class ReportService:
     """Service layer for report generation."""
 
     @staticmethod
-    def generate_attendance_csv(
-        db: Session, class_name: str = None, days: int = 30
-    ) -> BytesIO:
+    def generate_attendance_csv(db: Session, class_name: str = None, days: int = 30) -> BytesIO:
         """Generate CSV attendance report."""
         cutoff_date = datetime.now() - timedelta(days=days)
 
@@ -91,17 +89,14 @@ class ReportService:
         """Generate attendance summary statistics."""
         cutoff_date = datetime.now() - timedelta(days=days)
 
-        query = (
-            db.query(
-                Student.id,
-                Student.student_code,
-                Student.first_name,
-                Student.last_name,
-                Student.class_name,
-                Student.attendance_rate,
-            )
-            .distinct()
-        )
+        query = db.query(
+            Student.id,
+            Student.student_code,
+            Student.first_name,
+            Student.last_name,
+            Student.class_name,
+            Student.attendance_rate,
+        ).distinct()
 
         if student_id:
             query = query.filter(Student.id == student_id)
@@ -153,11 +148,7 @@ class ReportService:
             return None
 
         # Get attendance summary
-        records = (
-            db.query(AttendanceRecord)
-            .filter(AttendanceRecord.student_id == student_id)
-            .all()
-        )
+        records = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student_id).all()
 
         total = len(records)
         present = sum(1 for r in records if r.status == "present")
@@ -171,7 +162,9 @@ class ReportService:
             "name": f"{student.first_name} {student.last_name}",
             "class": student.class_name,
             "email": student.email,
-            "enrollment_date": student.enrollment_date.isoformat() if student.enrollment_date else None,
+            "enrollment_date": (
+                student.enrollment_date.isoformat() if student.enrollment_date else None
+            ),
             "total_absence_hours": student.total_absence_hours,
             "total_late_minutes": student.total_late_minutes,
             "attendance_rate": student.attendance_rate,
@@ -251,10 +244,10 @@ class ReportService:
         header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         header_font = Font(bold=True, color="FFFFFF", size=11)
         border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
         )
 
         # Headers
@@ -290,11 +283,11 @@ class ReportService:
             ws.cell(row=row_idx, column=2, value=record.first_name).border = border
             ws.cell(row=row_idx, column=3, value=record.last_name).border = border
             ws.cell(row=row_idx, column=4, value=record.class_name).border = border
-            
+
             status_cell = ws.cell(row=row_idx, column=5, value=record.status)
             status_cell.border = border
             status_cell.fill = status_fill_map.get(record.status, PatternFill())
-            
+
             ws.cell(
                 row=row_idx,
                 column=6,
@@ -305,15 +298,15 @@ class ReportService:
             ws.cell(row=row_idx, column=9, value=record.percentage or 0).border = border
 
         # Adjust column widths
-        ws.column_dimensions['A'].width = 15
-        ws.column_dimensions['B'].width = 15
-        ws.column_dimensions['C'].width = 15
-        ws.column_dimensions['D'].width = 15
-        ws.column_dimensions['E'].width = 12
-        ws.column_dimensions['F'].width = 18
-        ws.column_dimensions['G'].width = 12
-        ws.column_dimensions['H'].width = 20
-        ws.column_dimensions['I'].width = 12
+        ws.column_dimensions["A"].width = 15
+        ws.column_dimensions["B"].width = 15
+        ws.column_dimensions["C"].width = 15
+        ws.column_dimensions["D"].width = 15
+        ws.column_dimensions["E"].width = 12
+        ws.column_dimensions["F"].width = 18
+        ws.column_dimensions["G"].width = 12
+        ws.column_dimensions["H"].width = 20
+        ws.column_dimensions["I"].width = 12
 
         output = BytesIO()
         wb.save(output)
@@ -324,82 +317,100 @@ class ReportService:
     def generate_pdf_report(db: Session, student_id: int = None, class_name: str = None) -> BytesIO:
         """Generate PDF report using reportlab."""
         output = BytesIO()
-        doc = SimpleDocTemplate(output, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+        doc = SimpleDocTemplate(
+            output, pagesize=letter, topMargin=0.5 * inch, bottomMargin=0.5 * inch
+        )
 
         story = []
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
+            "CustomTitle",
+            parent=styles["Heading1"],
             fontSize=24,
-            textColor=colors.HexColor('#2C3E50'),
+            textColor=colors.HexColor("#2C3E50"),
             spaceAfter=30,
             alignment=TA_CENTER,
         )
 
         # Title
         story.append(Paragraph("Smart Presence AI - Attendance Report", title_style))
-        story.append(Paragraph(f"<b>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</b>", styles['Normal']))
-        story.append(Spacer(1, 0.3*inch))
+        story.append(
+            Paragraph(
+                f"<b>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</b>",
+                styles["Normal"],
+            )
+        )
+        story.append(Spacer(1, 0.3 * inch))
 
         if student_id:
             report = ReportService.generate_student_report(db, student_id)
             if report:
-                story.append(Paragraph(f"<b>Student:</b> {report['name']}", styles['Heading2']))
-                story.append(Paragraph(f"<b>Code:</b> {report['student_code']}", styles['Normal']))
-                story.append(Paragraph(f"<b>Class:</b> {report.get('class', 'N/A')}", styles['Normal']))
-                story.append(Paragraph(f"<b>Email:</b> {report.get('email', 'N/A')}", styles['Normal']))
-                story.append(Spacer(1, 0.2*inch))
+                story.append(Paragraph(f"<b>Student:</b> {report['name']}", styles["Heading2"]))
+                story.append(Paragraph(f"<b>Code:</b> {report['student_code']}", styles["Normal"]))
+                story.append(
+                    Paragraph(f"<b>Class:</b> {report.get('class', 'N/A')}", styles["Normal"])
+                )
+                story.append(
+                    Paragraph(f"<b>Email:</b> {report.get('email', 'N/A')}", styles["Normal"])
+                )
+                story.append(Spacer(1, 0.2 * inch))
 
                 # Attendance Summary Table
-                summary = report['attendance_summary']
+                summary = report["attendance_summary"]
                 data = [
-                    ['Metric', 'Value'],
-                    ['Total Sessions', str(summary['total_sessions'])],
-                    ['Present', str(summary['present'])],
-                    ['Absent', str(summary['absent'])],
-                    ['Late', str(summary['late'])],
-                    ['Attendance Rate', f"{summary['rate']}%"],
+                    ["Metric", "Value"],
+                    ["Total Sessions", str(summary["total_sessions"])],
+                    ["Present", str(summary["present"])],
+                    ["Absent", str(summary["absent"])],
+                    ["Late", str(summary["late"])],
+                    ["Attendance Rate", f"{summary['rate']}%"],
                 ]
 
-                table = Table(data, colWidths=[2.5*inch, 2.5*inch])
-                table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 11),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ]))
+                table = Table(data, colWidths=[2.5 * inch, 2.5 * inch])
+                table.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4472C4")),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 11),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ]
+                    )
+                )
                 story.append(table)
         else:
             report = ReportService.generate_class_analytics(db, class_name)
             if report:
-                story.append(Paragraph(f"<b>Class:</b> {report['class']}", styles['Heading2']))
-                story.append(Spacer(1, 0.2*inch))
+                story.append(Paragraph(f"<b>Class:</b> {report['class']}", styles["Heading2"]))
+                story.append(Spacer(1, 0.2 * inch))
 
                 # Class Summary
                 data = [
-                    ['Metric', 'Value'],
-                    ['Total Students', str(report['total_students'])],
-                    ['High Risk Students', str(report['high_risk_students'])],
-                    ['Average Attendance', f"{report['average_attendance_rate']}%"],
+                    ["Metric", "Value"],
+                    ["Total Students", str(report["total_students"])],
+                    ["High Risk Students", str(report["high_risk_students"])],
+                    ["Average Attendance", f"{report['average_attendance_rate']}%"],
                 ]
 
-                table = Table(data, colWidths=[2.5*inch, 2.5*inch])
-                table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 11),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ]))
+                table = Table(data, colWidths=[2.5 * inch, 2.5 * inch])
+                table.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4472C4")),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                            ("FONTSIZE", (0, 0), (-1, 0), 11),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ]
+                    )
+                )
                 story.append(table)
 
         doc.build(story)
         output.seek(0)
         return output
-

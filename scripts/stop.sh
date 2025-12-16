@@ -25,26 +25,29 @@ trap 'log_warning "Shutdown interrupted"; exit 1' INT TERM
 log_info "SmartPresence Services - Graceful Shutdown"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+# Detect compose command
+if docker compose version >/dev/null 2>&1; then COMPOSE_CMD=(docker compose); else COMPOSE_CMD=(docker-compose); fi
+
 # Check if services are running
-if ! docker-compose ps 2>/dev/null | grep -q "smartpresence"; then
+if ! "${COMPOSE_CMD[@]}" ps 2>/dev/null | grep -q "smartpresence"; then
   log_warning "No services currently running"
   exit 0
 fi
 
 # Count running containers
-RUNNING=$(docker-compose ps --quiet 2>/dev/null | wc -l)
+RUNNING=$("${COMPOSE_CMD[@]}" ps --quiet 2>/dev/null | wc -l)
 if [ "$RUNNING" -gt 0 ]; then
   log_info "Found $RUNNING running container(s)"
   log_info "Stopping services (this may take up to 10 seconds)..."
   echo ""
   
   # Stop containers with timeout
-  if docker-compose down --timeout 10 2>&1; then
+  if "${COMPOSE_CMD[@]}" down --timeout 10 2>&1; then
     log_success "All services stopped gracefully"
   else
     log_warning "Some services required forced shutdown"
-    docker-compose kill 2>/dev/null || true
-    docker-compose down 2>/dev/null || true
+    "${COMPOSE_CMD[@]}" kill 2>/dev/null || true
+    "${COMPOSE_CMD[@]}" down 2>/dev/null || true
     log_success "Services stopped"
   fi
 else
@@ -61,9 +64,9 @@ if [[ $CLEANUP =~ ^[Yy]$ ]]; then
   log_info "Removing volumes..."
   
   # Get list of volumes before removal
-  VOLUMES=$(docker-compose config --volumes 2>/dev/null | tail -n +2 | wc -l)
+  VOLUMES=$("${COMPOSE_CMD[@]}" config --volumes 2>/dev/null | tail -n +2 | wc -l)
   
-  if docker-compose down -v 2>/dev/null; then
+  if "${COMPOSE_CMD[@]}" down -v 2>/dev/null; then
     log_success "Volumes removed ($VOLUMES volumes cleaned)"
     log_warning "Database data has been deleted"
   else

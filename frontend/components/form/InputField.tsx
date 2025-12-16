@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useFormContext } from "react-hook-form";
+import { useFormContext } from 'react-hook-form';
 
 type InputFieldProps = {
   label: string;
@@ -10,8 +10,17 @@ type InputFieldProps = {
   placeholder?: string;
 };
 
-export default function InputField({ label, name, type = "text", required, placeholder }: InputFieldProps) {
-  const { register, formState: { errors } } = useFormContext();
+export default function InputField({
+  label,
+  name,
+  type = 'text',
+  required,
+  placeholder,
+}: InputFieldProps) {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext();
   const error = errors[name]?.message as string | undefined;
 
   return (
@@ -24,7 +33,7 @@ export default function InputField({ label, name, type = "text", required, place
         type={type}
         placeholder={placeholder}
         className={`w-full rounded-lg border px-3 py-2 text-sm text-white bg-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 ${
-          error ? "border-red-500 focus:ring-red-600" : "border-white/10 focus:ring-amber-600"
+          error ? 'border-red-500 focus:ring-red-600' : 'border-white/10 focus:ring-amber-600'
         }`}
         aria-label={label}
       />

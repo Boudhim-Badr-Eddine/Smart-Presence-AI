@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { Upload, X, CheckCircle } from "lucide-react";
-import { getApiBase } from "@/lib/config";
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { Upload, X, CheckCircle } from 'lucide-react';
+import { getApiBase } from '@/lib/config';
 
 const apiBase = getApiBase();
 
@@ -17,17 +17,17 @@ type Absence = {
 
 export default function JustificationClient() {
   const [selectedAbsence, setSelectedAbsence] = useState<number | null>(null);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
 
   const { data: absences = [] } = useQuery({
-    queryKey: ["student-absences"],
+    queryKey: ['student-absences'],
     queryFn: async () => {
       const res = await axios.get(`${apiBase}/api/student/absences`).catch(() => ({
         data: [
-          { id: 1, date: "2025-01-11", subject: "Database", justified: false },
-          { id: 2, date: "2025-01-09", subject: "Security", justified: false },
+          { id: 1, date: '2025-01-11', subject: 'Database', justified: false },
+          { id: 2, date: '2025-01-09', subject: 'Security', justified: false },
         ],
       }));
       return res.data as Absence[];
@@ -37,18 +37,18 @@ export default function JustificationClient() {
   const submitMutation = useMutation({
     mutationFn: async (data: { absence_id: number; reason: string; file?: File }) => {
       const formData = new FormData();
-      formData.append("absence_id", data.absence_id.toString());
-      formData.append("reason", data.reason);
-      if (data.file) formData.append("file", data.file);
+      formData.append('absence_id', data.absence_id.toString());
+      formData.append('reason', data.reason);
+      if (data.file) formData.append('file', data.file);
 
       return axios.post(`${apiBase}/api/student/justifications`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["student-absences"] });
+      queryClient.invalidateQueries({ queryKey: ['student-absences'] });
       setSelectedAbsence(null);
-      setReason("");
+      setReason('');
       setFile(null);
     },
   });
@@ -83,12 +83,16 @@ export default function JustificationClient() {
                 onClick={() => setSelectedAbsence(absence.id)}
                 className={`w-full text-left rounded-lg border p-4 transition ${
                   selectedAbsence === absence.id
-                    ? "border-blue-600 bg-blue-600/10"
-                    : "border-white/10 bg-white/2 hover:bg-white/5 dark:border-white/10 dark:bg-white/2 dark:hover:bg-white/5 light:border-gray-200 light:bg-gray-50 light:hover:bg-gray-100"
+                    ? 'border-blue-600 bg-blue-600/10'
+                    : 'border-white/10 bg-white/2 hover:bg-white/5 dark:border-white/10 dark:bg-white/2 dark:hover:bg-white/5 light:border-gray-200 light:bg-gray-50 light:hover:bg-gray-100'
                 }`}
               >
-                <p className="font-medium text-white dark:text-white light:text-gray-900">{absence.subject}</p>
-                <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">{absence.date}</p>
+                <p className="font-medium text-white dark:text-white light:text-gray-900">
+                  {absence.subject}
+                </p>
+                <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  {absence.date}
+                </p>
               </button>
             ))}
           </div>
@@ -133,7 +137,11 @@ export default function JustificationClient() {
                 {file && (
                   <div className="flex items-center gap-2 text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
                     <span>{file.name}</span>
-                    <button type="button" onClick={() => setFile(null)} className="text-red-400 hover:text-red-300">
+                    <button
+                      type="button"
+                      onClick={() => setFile(null)}
+                      className="text-red-400 hover:text-red-300"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -146,7 +154,7 @@ export default function JustificationClient() {
               disabled={submitMutation.isPending}
               className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
             >
-              {submitMutation.isPending ? "Envoi..." : "Soumettre"}
+              {submitMutation.isPending ? 'Envoi...' : 'Soumettre'}
             </button>
 
             {submitMutation.isSuccess && (

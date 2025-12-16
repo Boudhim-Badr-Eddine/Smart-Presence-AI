@@ -1,7 +1,7 @@
-"use client";
-import { useRef, useState } from "react";
-import { Upload, X, User as UserIcon } from "lucide-react";
-import Image from "next/image";
+'use client';
+import { useRef, useState } from 'react';
+import { Upload, X, User as UserIcon } from 'lucide-react';
+import Image from 'next/image';
 
 type Props = {
   currentAvatar?: string;
@@ -18,14 +18,14 @@ export default function AvatarUpload({ currentAvatar, onUpload }: Props) {
     if (!file) return;
 
     // Validate type
-    if (!file.type.startsWith("image/")) {
-      alert("Le fichier doit être une image");
+    if (!file.type.startsWith('image/')) {
+      alert('Le fichier doit être une image');
       return;
     }
 
     // Validate size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert("La taille maximale est de 2 Mo");
+      alert('La taille maximale est de 2 Mo');
       return;
     }
 
@@ -41,8 +41,8 @@ export default function AvatarUpload({ currentAvatar, onUpload }: Props) {
     try {
       await onUpload(file);
     } catch (err) {
-      console.error("Upload failed:", err);
-      alert("Échec du téléchargement");
+      console.error('Upload failed:', err);
+      alert('Échec du téléchargement');
     } finally {
       setUploading(false);
     }
@@ -50,7 +50,7 @@ export default function AvatarUpload({ currentAvatar, onUpload }: Props) {
 
   const clearPreview = () => {
     setPreview(null);
-    if (inputRef.current) inputRef.current.value = "";
+    if (inputRef.current) inputRef.current.value = '';
   };
 
   return (
@@ -74,7 +74,7 @@ export default function AvatarUpload({ currentAvatar, onUpload }: Props) {
       </div>
       <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 flex items-center gap-2">
         <Upload className="h-4 w-4" />
-        {uploading ? "Envoi..." : "Choisir une photo"}
+        {uploading ? 'Envoi...' : 'Choisir une photo'}
         <input
           ref={inputRef}
           type="file"

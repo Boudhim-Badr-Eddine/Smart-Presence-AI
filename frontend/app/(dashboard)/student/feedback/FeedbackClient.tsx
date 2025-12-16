@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { Send, MessageCircle, Clock, CheckCircle } from "lucide-react";
-import { getApiBase } from "@/lib/config";
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { Send, MessageCircle, Clock, CheckCircle } from 'lucide-react';
+import { getApiBase } from '@/lib/config';
 
 const apiBase = getApiBase();
 
@@ -12,28 +12,28 @@ type Feedback = {
   id: number;
   subject: string;
   message: string;
-  status: "pending" | "reviewed" | "resolved";
+  status: 'pending' | 'reviewed' | 'resolved';
   created_at: string;
   response?: string;
 };
 
 export default function FeedbackClient() {
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
   const queryClient = useQueryClient();
 
   const { data: feedbacks = [] } = useQuery({
-    queryKey: ["student-feedbacks"],
+    queryKey: ['student-feedbacks'],
     queryFn: async () => {
       const res = await axios.get(`${apiBase}/api/student/feedbacks`).catch(() => ({
         data: [
           {
             id: 1,
             subject: "Problème d'accès",
-            message: "Impossible de me connecter hier",
-            status: "reviewed",
-            created_at: "2025-01-10",
-            response: "Le problème a été résolu. Merci pour votre retour.",
+            message: 'Impossible de me connecter hier',
+            status: 'reviewed',
+            created_at: '2025-01-10',
+            response: 'Le problème a été résolu. Merci pour votre retour.',
           },
         ],
       }));
@@ -46,9 +46,9 @@ export default function FeedbackClient() {
       return axios.post(`${apiBase}/api/student/feedbacks`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["student-feedbacks"] });
-      setSubject("");
-      setMessage("");
+      queryClient.invalidateQueries({ queryKey: ['student-feedbacks'] });
+      setSubject('');
+      setMessage('');
     },
   });
 
@@ -61,11 +61,11 @@ export default function FeedbackClient() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "pending":
+      case 'pending':
         return <Clock className="h-4 w-4 text-amber-400" />;
-      case "reviewed":
+      case 'reviewed':
         return <MessageCircle className="h-4 w-4 text-blue-400" />;
-      case "resolved":
+      case 'resolved':
         return <CheckCircle className="h-4 w-4 text-emerald-400" />;
       default:
         return null;
@@ -74,12 +74,12 @@ export default function FeedbackClient() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "pending":
-        return "En attente";
-      case "reviewed":
-        return "Examiné";
-      case "resolved":
-        return "Résolu";
+      case 'pending':
+        return 'En attente';
+      case 'reviewed':
+        return 'Examiné';
+      case 'resolved':
+        return 'Résolu';
       default:
         return status;
     }
@@ -87,14 +87,14 @@ export default function FeedbackClient() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
-        return "bg-amber-600/20 text-amber-300";
-      case "reviewed":
-        return "bg-blue-600/20 text-blue-300";
-      case "resolved":
-        return "bg-emerald-600/20 text-emerald-300";
+      case 'pending':
+        return 'bg-amber-600/20 text-amber-300';
+      case 'reviewed':
+        return 'bg-blue-600/20 text-blue-300';
+      case 'resolved':
+        return 'bg-emerald-600/20 text-emerald-300';
       default:
-        return "bg-zinc-600/20 text-zinc-300";
+        return 'bg-zinc-600/20 text-zinc-300';
     }
   };
 
@@ -139,7 +139,7 @@ export default function FeedbackClient() {
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             <Send className="h-4 w-4" />
-            {submitMutation.isPending ? "Envoi..." : "Envoyer"}
+            {submitMutation.isPending ? 'Envoi...' : 'Envoyer'}
           </button>
 
           {submitMutation.isSuccess && (
@@ -171,18 +171,28 @@ export default function FeedbackClient() {
                 className="rounded-lg border border-white/10 bg-white/2 p-4 dark:border-white/10 dark:bg-white/2 light:border-gray-200 light:bg-gray-50"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-white dark:text-white light:text-gray-900">{feedback.subject}</h3>
-                  <span className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${getStatusColor(feedback.status)}`}>
+                  <h3 className="font-medium text-white dark:text-white light:text-gray-900">
+                    {feedback.subject}
+                  </h3>
+                  <span
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${getStatusColor(feedback.status)}`}
+                  >
                     {getStatusIcon(feedback.status)}
                     {getStatusLabel(feedback.status)}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600 mb-2">{feedback.message}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-500 light:text-gray-500">{feedback.created_at}</p>
+                <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600 mb-2">
+                  {feedback.message}
+                </p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-500 light:text-gray-500">
+                  {feedback.created_at}
+                </p>
                 {feedback.response && (
                   <div className="mt-3 rounded-lg bg-blue-600/10 border border-blue-600/20 p-3">
                     <p className="text-xs font-medium text-blue-300 mb-1">Réponse:</p>
-                    <p className="text-sm text-zinc-300 dark:text-zinc-300 light:text-gray-700">{feedback.response}</p>
+                    <p className="text-sm text-zinc-300 dark:text-zinc-300 light:text-gray-700">
+                      {feedback.response}
+                    </p>
                   </div>
                 )}
               </div>

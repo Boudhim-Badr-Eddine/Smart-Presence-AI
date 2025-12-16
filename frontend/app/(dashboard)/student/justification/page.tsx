@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
 export const dynamic = 'force-dynamic';
-import { motion } from "framer-motion";
-import { FileText, Send, CheckCircle, Clock, XCircle, Upload } from "lucide-react";
-import { useState } from "react";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import RoleGuard from "@/components/auth/RoleGuard";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { getApiBase } from "@/lib/config";
+import { motion } from 'framer-motion';
+import { FileText, Send, CheckCircle, Clock, XCircle, Upload } from 'lucide-react';
+import { useState } from 'react';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import RoleGuard from '@/components/auth/RoleGuard';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { getApiBase } from '@/lib/config';
 
 const apiBase = getApiBase();
 
@@ -16,7 +16,7 @@ type Justification = {
   id: number;
   absence_date: string;
   reason: string;
-  status: "pending" | "approved" | "rejected";
+  status: 'pending' | 'approved' | 'rejected';
   submitted_at: string;
   response_at?: string;
   admin_comment?: string;
@@ -31,21 +31,35 @@ type JustificationForm = {
 
 export default function StudentJustificationPage() {
   const [form, setForm] = useState<JustificationForm>({
-    start_date: "",
-    end_date: "",
-    reason: "",
+    start_date: '',
+    end_date: '',
+    reason: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: justifications } = useQuery({
-    queryKey: ["student-justifications"],
+    queryKey: ['student-justifications'],
     queryFn: async () => {
       const res = await axios.get(`${apiBase}/api/student/justifications`).catch(() => ({
         data: {
           items: [
-            { id: 1, absence_date: "2025-01-10", reason: "Maladie", status: "approved", submitted_at: "2025-01-10", response_at: "2025-01-11", admin_comment: "Justification valide" },
-            { id: 2, absence_date: "2025-01-08", reason: "Rendez-vous médical", status: "pending", submitted_at: "2025-01-08" },
+            {
+              id: 1,
+              absence_date: '2025-01-10',
+              reason: 'Maladie',
+              status: 'approved',
+              submitted_at: '2025-01-10',
+              response_at: '2025-01-11',
+              admin_comment: 'Justification valide',
+            },
+            {
+              id: 2,
+              absence_date: '2025-01-08',
+              reason: 'Rendez-vous médical',
+              status: 'pending',
+              submitted_at: '2025-01-08',
+            },
           ],
         },
       }));
@@ -62,8 +76,8 @@ export default function StudentJustificationPage() {
       });
     },
     onSuccess: () => {
-      setForm({ start_date: "", end_date: "", reason: "" });
-      queryClient.invalidateQueries({ queryKey: ["student-justifications"] });
+      setForm({ start_date: '', end_date: '', reason: '' });
+      queryClient.invalidateQueries({ queryKey: ['student-justifications'] });
     },
   });
 
@@ -76,9 +90,9 @@ export default function StudentJustificationPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "approved":
+      case 'approved':
         return <CheckCircle className="h-5 w-5 text-emerald-300" />;
-      case "rejected":
+      case 'rejected':
         return <XCircle className="h-5 w-5 text-red-300" />;
       default:
         return <Clock className="h-5 w-5 text-amber-300" />;
@@ -87,34 +101,40 @@ export default function StudentJustificationPage() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "approved":
-        return "Approuvé";
-      case "rejected":
-        return "Rejeté";
+      case 'approved':
+        return 'Approuvé';
+      case 'rejected':
+        return 'Rejeté';
       default:
-        return "En attente";
+        return 'En attente';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "approved":
-        return "bg-emerald-600/20 text-emerald-300 border-emerald-600/20";
-      case "rejected":
-        return "bg-red-600/20 text-red-300 border-red-600/20";
+      case 'approved':
+        return 'bg-emerald-600/20 text-emerald-300 border-emerald-600/20';
+      case 'rejected':
+        return 'bg-red-600/20 text-red-300 border-red-600/20';
       default:
-        return "bg-amber-600/20 text-amber-300 border-amber-600/20";
+        return 'bg-amber-600/20 text-amber-300 border-amber-600/20';
     }
   };
 
   return (
-    <RoleGuard allow={["student"]}>
+    <RoleGuard allow={['student']}>
       <div className="mx-auto max-w-7xl p-6">
-        <Breadcrumbs items={[{ label: "Espace Étudiant", href: "/student" }, { label: "Justificatifs" }]} />
-        
+        <Breadcrumbs
+          items={[{ label: 'Espace Étudiant', href: '/student' }, { label: 'Justificatifs' }]}
+        />
+
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-white dark:text-white light:text-gray-900">Justifier une Absence</h1>
-          <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">Soumettez vos justificatifs d'absence pour validation</p>
+          <h1 className="text-2xl font-semibold text-white dark:text-white light:text-gray-900">
+            Justifier une Absence
+          </h1>
+          <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+            Soumettez vos justificatifs d'absence pour validation
+          </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -128,7 +148,9 @@ export default function StudentJustificationPage() {
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-white dark:text-white light:text-gray-900 mb-2">Date de Début *</label>
+                  <label className="block text-sm font-medium text-white dark:text-white light:text-gray-900 mb-2">
+                    Date de Début *
+                  </label>
                   <input
                     type="date"
                     value={form.start_date}
@@ -138,7 +160,9 @@ export default function StudentJustificationPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white dark:text-white light:text-gray-900 mb-2">Date de Fin *</label>
+                  <label className="block text-sm font-medium text-white dark:text-white light:text-gray-900 mb-2">
+                    Date de Fin *
+                  </label>
                   <input
                     type="date"
                     value={form.end_date}
@@ -150,7 +174,9 @@ export default function StudentJustificationPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white dark:text-white light:text-gray-900 mb-2">Motif de l'Absence *</label>
+                <label className="block text-sm font-medium text-white dark:text-white light:text-gray-900 mb-2">
+                  Motif de l'Absence *
+                </label>
                 <textarea
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
@@ -166,26 +192,40 @@ export default function StudentJustificationPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition"
               >
                 <Send className="h-4 w-4" />
-                {submitting ? "Envoi..." : "Soumettre le Justificatif"}
+                {submitting ? 'Envoi...' : 'Soumettre le Justificatif'}
               </button>
             </motion.form>
           </div>
 
           {/* Statistics Card */}
           <div className="rounded-lg border border-white/10 bg-white/5 p-6 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white h-fit">
-            <h3 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">Statistiques</h3>
+            <h3 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
+              Statistiques
+            </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">Approuvés</span>
-                <span className="text-2xl font-bold text-emerald-300">{justifications?.filter(j => j.status === "approved").length ?? 0}</span>
+                <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  Approuvés
+                </span>
+                <span className="text-2xl font-bold text-emerald-300">
+                  {justifications?.filter((j) => j.status === 'approved').length ?? 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">En attente</span>
-                <span className="text-2xl font-bold text-amber-300">{justifications?.filter(j => j.status === "pending").length ?? 0}</span>
+                <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  En attente
+                </span>
+                <span className="text-2xl font-bold text-amber-300">
+                  {justifications?.filter((j) => j.status === 'pending').length ?? 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">Rejetés</span>
-                <span className="text-2xl font-bold text-red-300">{justifications?.filter(j => j.status === "rejected").length ?? 0}</span>
+                <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  Rejetés
+                </span>
+                <span className="text-2xl font-bold text-red-300">
+                  {justifications?.filter((j) => j.status === 'rejected').length ?? 0}
+                </span>
               </div>
             </div>
           </div>
@@ -193,7 +233,9 @@ export default function StudentJustificationPage() {
 
         {/* Justifications History */}
         <div className="mt-6">
-          <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">Historique des Justificatifs</h2>
+          <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
+            Historique des Justificatifs
+          </h2>
           <div className="space-y-3">
             {justifications && justifications.length > 0 ? (
               justifications.map((justification, idx) => (
@@ -208,7 +250,9 @@ export default function StudentJustificationPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         {getStatusIcon(justification.status)}
-                        <span className="font-medium text-white dark:text-white light:text-gray-900">{justification.reason}</span>
+                        <span className="font-medium text-white dark:text-white light:text-gray-900">
+                          {justification.reason}
+                        </span>
                       </div>
                       <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
                         {new Date(justification.absence_date).toLocaleDateString('fr-FR')}
@@ -219,7 +263,9 @@ export default function StudentJustificationPage() {
                         </p>
                       )}
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium border ${getStatusColor(justification.status)}`}>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-medium border ${getStatusColor(justification.status)}`}
+                    >
                       {getStatusLabel(justification.status)}
                     </span>
                   </div>
@@ -228,7 +274,9 @@ export default function StudentJustificationPage() {
             ) : (
               <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center">
                 <FileText className="h-8 w-8 mx-auto text-zinc-400 mb-2" />
-                <p className="text-zinc-400 dark:text-zinc-400 light:text-gray-600">Aucun justificatif soumis</p>
+                <p className="text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                  Aucun justificatif soumis
+                </p>
               </div>
             )}
           </div>

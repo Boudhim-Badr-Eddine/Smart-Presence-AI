@@ -2,17 +2,17 @@
  * Onboarding tour system with step-by-step tooltips.
  * Guides first-time users through key features.
  */
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
 export type TourStep = {
   target: string; // CSS selector
   title: string;
   content: string;
-  placement?: "top" | "bottom" | "left" | "right";
+  placement?: 'top' | 'bottom' | 'left' | 'right';
   action?: {
     label: string;
     onClick: () => void;
@@ -50,48 +50,48 @@ export default function OnboardingTour({
     const updatePosition = () => {
       const step = steps[currentStep];
       const target = document.querySelector(step.target);
-      
+
       if (target) {
         const rect = target.getBoundingClientRect();
-        const placement = step.placement || "bottom";
-        
+        const placement = step.placement || 'bottom';
+
         let top = 0;
         let left = 0;
 
         switch (placement) {
-          case "top":
+          case 'top':
             top = rect.top - 20;
             left = rect.left + rect.width / 2;
             break;
-          case "bottom":
+          case 'bottom':
             top = rect.bottom + 20;
             left = rect.left + rect.width / 2;
             break;
-          case "left":
+          case 'left':
             top = rect.top + rect.height / 2;
             left = rect.left - 20;
             break;
-          case "right":
+          case 'right':
             top = rect.top + rect.height / 2;
             left = rect.right + 20;
             break;
         }
 
         setPosition({ top, left });
-        
+
         // Highlight target
-        target.classList.add("tour-highlight");
-        return () => target.classList.remove("tour-highlight");
+        target.classList.add('tour-highlight');
+        return () => target.classList.remove('tour-highlight');
       }
     };
 
     updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition);
 
     return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
     };
   }, [isActive, currentStep, steps]);
 
@@ -110,7 +110,7 @@ export default function OnboardingTour({
   };
 
   const handleComplete = () => {
-    localStorage.setItem(`tour_${tourId}_completed`, "true");
+    localStorage.setItem(`tour_${tourId}_completed`, 'true');
     setIsActive(false);
     onComplete?.();
   };
@@ -140,7 +140,7 @@ export default function OnboardingTour({
             style={{
               top: position.top,
               left: position.left,
-              transform: "translate(-50%, -50%)",
+              transform: 'translate(-50%, -50%)',
             }}
           >
             <div className="relative max-w-sm rounded-xl border border-amber-500/30 bg-zinc-900 p-6 shadow-2xl">
@@ -152,18 +152,15 @@ export default function OnboardingTour({
                       key={idx}
                       className={`h-1.5 w-8 rounded-full ${
                         idx === currentStep
-                          ? "bg-amber-500"
+                          ? 'bg-amber-500'
                           : idx < currentStep
-                          ? "bg-amber-500/50"
-                          : "bg-white/20"
+                            ? 'bg-amber-500/50'
+                            : 'bg-white/20'
                       }`}
                     />
                   ))}
                 </div>
-                <button
-                  onClick={handleSkip}
-                  className="text-xs text-zinc-400 hover:text-white"
-                >
+                <button onClick={handleSkip} className="text-xs text-zinc-400 hover:text-white">
                   Passer
                 </button>
               </div>
@@ -219,13 +216,13 @@ export default function OnboardingTour({
             {/* Arrow pointer */}
             <div
               className={`absolute h-0 w-0 border-8 ${
-                step.placement === "top"
-                  ? "left-1/2 top-full -translate-x-1/2 border-b-0 border-l-transparent border-r-transparent border-t-zinc-900"
-                  : step.placement === "left"
-                  ? "left-full top-1/2 -translate-y-1/2 border-l-zinc-900 border-r-0 border-b-transparent border-t-transparent"
-                  : step.placement === "right"
-                  ? "right-full top-1/2 -translate-y-1/2 border-r-zinc-900 border-l-0 border-b-transparent border-t-transparent"
-                  : "left-1/2 bottom-full -translate-x-1/2 border-t-0 border-l-transparent border-r-transparent border-b-zinc-900"
+                step.placement === 'top'
+                  ? 'left-1/2 top-full -translate-x-1/2 border-b-0 border-l-transparent border-r-transparent border-t-zinc-900'
+                  : step.placement === 'left'
+                    ? 'left-full top-1/2 -translate-y-1/2 border-l-zinc-900 border-r-0 border-b-transparent border-t-transparent'
+                    : step.placement === 'right'
+                      ? 'right-full top-1/2 -translate-y-1/2 border-r-zinc-900 border-l-0 border-b-transparent border-t-transparent'
+                      : 'left-1/2 bottom-full -translate-x-1/2 border-t-0 border-l-transparent border-r-transparent border-b-zinc-900'
               }`}
             />
           </motion.div>
@@ -236,7 +233,9 @@ export default function OnboardingTour({
         .tour-highlight {
           position: relative;
           z-index: 102;
-          box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.5), 0 0 20px rgba(251, 191, 36, 0.3);
+          box-shadow:
+            0 0 0 4px rgba(251, 191, 36, 0.5),
+            0 0 20px rgba(251, 191, 36, 0.3);
           border-radius: 0.5rem;
         }
       `}</style>

@@ -1,8 +1,8 @@
-"use client";
-import { motion } from "framer-motion";
-import { Camera, Upload, X } from "lucide-react";
-import Image from "next/image";
-import { useState, useRef } from "react";
+'use client';
+import { motion } from 'framer-motion';
+import { Camera, Upload, X } from 'lucide-react';
+import Image from 'next/image';
+import { useState, useRef } from 'react';
 
 interface ProfileAvatarProps {
   currentAvatar?: string;
@@ -24,19 +24,19 @@ export default function ProfileAvatar({ currentAvatar, onUpdate }: ProfileAvatar
       }
       setShowWebcam(true);
     } catch (err) {
-      console.error("Webcam access error:", err);
+      console.error('Webcam access error:', err);
     }
   };
 
   const capturePhoto = () => {
     if (!videoRef.current) return;
-    const canvas = document.createElement("canvas");
+    const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       setPreview(dataUrl);
       onUpdate(dataUrl);
       stopWebcam();
@@ -45,7 +45,7 @@ export default function ProfileAvatar({ currentAvatar, onUpdate }: ProfileAvatar
 
   const stopWebcam = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     setShowWebcam(false);

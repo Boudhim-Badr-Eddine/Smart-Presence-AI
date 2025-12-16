@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import RoleGuard from "@/components/auth/RoleGuard";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/skeleton";
+import RoleGuard from '@/components/auth/RoleGuard';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const CalendarClient = dynamic(() => import("./CalendarClient"), {
+const CalendarClient = dynamic(() => import('./CalendarClient'), {
   loading: () => (
     <div className="space-y-4">
       <Skeleton className="h-12 w-full" />
@@ -17,10 +17,13 @@ const CalendarClient = dynamic(() => import("./CalendarClient"), {
 
 export default function CalendarPage() {
   return (
-    <RoleGuard allow={["student"]}>
+    <RoleGuard allow={['student']}>
       <div className="mx-auto max-w-7xl p-6">
         <Breadcrumbs
-          items={[{ label: "Mon espace étudiant", href: "/student" }, { label: "Calendrier unifié" }]}
+          items={[
+            { label: 'Mon espace étudiant', href: '/student' },
+            { label: 'Calendrier unifié' },
+          ]}
         />
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-white dark:text-white light:text-gray-900">

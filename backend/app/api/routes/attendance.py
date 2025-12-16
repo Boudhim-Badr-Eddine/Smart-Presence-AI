@@ -1,10 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.schemas.attendance import AttendanceCreate, AttendanceOut, AttendanceUpdate, AttendanceSummary
-from app.services.attendance import AttendanceService
-from app.utils.deps import get_db, get_current_user
-from app.models.user import User
+
 from app.models.attendance import AttendanceRecord
+from app.models.user import User
+from app.schemas.attendance import (
+    AttendanceCreate,
+    AttendanceOut,
+    AttendanceSummary,
+    AttendanceUpdate,
+)
+from app.services.attendance import AttendanceService
+from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["attendance"])
 
@@ -34,6 +40,7 @@ def get_student_attendance_summary(
 ):
     """Get attendance summary for a student."""
     from app.db.session import SessionLocal
+
     db = SessionLocal()
     try:
         summary = AttendanceService.get_student_attendance_summary(db, student_id, days)
@@ -53,7 +60,8 @@ def get_session_attendance(
     """Get all attendance records for a session."""
     if current_user.role not in ["admin", "trainer"]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only admin/trainer can view session attendance"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin/trainer can view session attendance",
         )
 
     records = AttendanceService.get_session_attendance(db, session_id)

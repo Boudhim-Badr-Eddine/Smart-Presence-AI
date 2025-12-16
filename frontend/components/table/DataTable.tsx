@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useRef } from "react";
+import { useRef } from 'react';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -8,8 +8,8 @@ import {
   getSortedRowModel,
   flexRender,
   useReactTable,
-} from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
+} from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 type DataTableProps = {
   data: any[];
@@ -20,7 +20,14 @@ type DataTableProps = {
   isLoading?: boolean;
 };
 
-export default function DataTable({ data, columns, pageCount, onPageChange, statePageIndex, isLoading }: DataTableProps) {
+export default function DataTable({
+  data,
+  columns,
+  pageCount,
+  onPageChange,
+  statePageIndex,
+  isLoading,
+}: DataTableProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const table = useReactTable({
     data,
@@ -37,7 +44,7 @@ export default function DataTable({ data, columns, pageCount, onPageChange, stat
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onPaginationChange: (updater) => {
-      const next = typeof updater === "function" ? updater(table.getState().pagination) : updater;
+      const next = typeof updater === 'function' ? updater(table.getState().pagination) : updater;
       onPageChange?.(next.pageIndex);
     },
   });
@@ -73,7 +80,7 @@ export default function DataTable({ data, columns, pageCount, onPageChange, stat
           ) : rows.length === 0 ? (
             <div className="px-3 py-4 text-zinc-400">Aucune donnée</div>
           ) : enableVirtual ? (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const row = rows[virtualRow.index];
                 return (
@@ -113,12 +120,23 @@ export default function DataTable({ data, columns, pageCount, onPageChange, stat
         </div>
       </div>
       <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-xs">
-        <div className="text-zinc-400">Page {table.getState().pagination.pageIndex + 1}{pageCount ? ` / ${pageCount}` : ""}</div>
+        <div className="text-zinc-400">
+          Page {table.getState().pagination.pageIndex + 1}
+          {pageCount ? ` / ${pageCount}` : ''}
+        </div>
         <div className="flex gap-2">
-          <button className="rounded-md bg-zinc-800 px-2 py-1 text-zinc-200 disabled:opacity-50" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <button
+            className="rounded-md bg-zinc-800 px-2 py-1 text-zinc-200 disabled:opacity-50"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
             Préc.
           </button>
-          <button className="rounded-md bg-zinc-800 px-2 py-1 text-zinc-200 disabled:opacity-50" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <button
+            className="rounded-md bg-zinc-800 px-2 py-1 text-zinc-200 disabled:opacity-50"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
             Suiv.
           </button>
         </div>

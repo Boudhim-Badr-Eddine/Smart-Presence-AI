@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime, date, time
-from typing import Iterable, List, Dict, Tuple
+from datetime import date, datetime, time
+from typing import Dict, Iterable, List, Tuple
+
 from fastapi import UploadFile
 from openpyxl import load_workbook
+from sqlalchemy.orm import Session
+
+from app.models.session import Session as SessionModel
 from app.models.student import Student
 from app.models.trainer import Trainer
-from app.models.session import Session as SessionModel
 from app.models.user import User
 from app.services.auth import get_password_hash
-from sqlalchemy.orm import Session
 
 # Lightweight importer to cover CSV/XLSX ingestion for admin bulk flows.
 
@@ -41,7 +43,10 @@ class ImportService:
             normalized_headers = [ImportService._normalize_header(h) for h in headers]
             results: List[Dict[str, str]] = []
             for r in rows[1:]:
-                row_dict = {normalized_headers[i]: ("" if val is None else str(val).strip()) for i, val in enumerate(r)}
+                row_dict = {
+                    normalized_headers[i]: ("" if val is None else str(val).strip())
+                    for i, val in enumerate(r)
+                }
                 results.append(ImportService._normalize_row(row_dict))
             return results
 
@@ -90,7 +95,9 @@ class ImportService:
                 if not all([email, code, first, last, class_name]):
                     raise ValueError("Missing required student fields")
 
-                user = ImportService._ensure_user(db, email=email, first_name=first, last_name=last, role="student")
+                user = ImportService._ensure_user(
+                    db, email=email, first_name=first, last_name=last, role="student"
+                )
 
                 student = db.query(Student).filter(Student.student_code == code).first()
                 if not student:
@@ -103,8 +110,13 @@ class ImportService:
                 student.class_name = class_name
                 student.group_name = row.get("group") or row.get("group_name") or student.group_name
                 student.academic_status = row.get("academic_status") or student.academic_status
-                student.enrollment_date = ImportService._parse_date(row.get("enrollment_date")) or student.enrollment_date
-                student.expected_graduation = ImportService._parse_date(row.get("expected_graduation")) or student.expected_graduation
+                student.enrollment_date = (
+                    ImportService._parse_date(row.get("enrollment_date")) or student.enrollment_date
+                )
+                student.expected_graduation = (
+                    ImportService._parse_date(row.get("expected_graduation"))
+                    or student.expected_graduation
+                )
                 success += 1
             except Exception as exc:  # noqa: BLE001
                 errors.append(f"row {idx}: {exc}")
@@ -124,7 +136,9 @@ class ImportService:
                 if not all([email, first, last]):
                     raise ValueError("Missing required trainer fields")
 
-                user = ImportService._ensure_user(db, email=email, first_name=first, last_name=last, role="trainer")
+                user = ImportService._ensure_user(
+                    db, email=email, first_name=first, last_name=last, role="trainer"
+                )
 
                 trainer = db.query(Trainer).filter(Trainer.email == email).first()
                 if not trainer:
@@ -152,7 +166,9 @@ class ImportService:
                 session_date = ImportService._parse_date(row.get("session_date"))
                 start_time = ImportService._parse_time(row.get("start_time"))
                 end_time = ImportService._parse_time(row.get("end_time"))
-                if not all([module_id, trainer_id, classroom_id, session_date, start_time, end_time]):
+                if not all(
+                    [module_id, trainer_id, classroom_id, session_date, start_time, end_time]
+                ):
                     raise ValueError("Missing required session fields")
 
                 session = SessionModel(
@@ -210,4 +226,3 @@ class ImportService:
             "trainers": "first_name,last_name,email,specialization,status\nAlex,Trainer,alex@example.com,Math,active\n",
             "sessions": "module_id,trainer_id,classroom_id,session_date,start_time,end_time,session_type,status\n12,3,7,2025-01-15,09:00,11:00,theory,scheduled\n",
         }
-

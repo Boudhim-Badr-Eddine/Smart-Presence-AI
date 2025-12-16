@@ -1,30 +1,44 @@
-"use client"
+'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
 interface AttendanceTrendData {
-  date: string
-  present: number
-  absent: number
-  late: number
+  date: string;
+  present: number;
+  absent: number;
+  late: number;
 }
 
 interface ClassStatsData {
-  className: string
-  attendanceRate: number
-  studentCount: number
+  className: string;
+  attendanceRate: number;
+  studentCount: number;
 }
 
 interface StudentRiskData {
-  name: string
-  riskLevel: number
-  absences: number
+  name: string;
+  riskLevel: number;
+  absences: number;
 }
 
 interface AnalyticsChartsProps {
-  attendanceTrend?: AttendanceTrendData[]
-  classStats?: ClassStatsData[]
-  highRiskStudents?: StudentRiskData[]
+  attendanceTrend?: AttendanceTrendData[];
+  classStats?: ClassStatsData[];
+  highRiskStudents?: StudentRiskData[];
 }
 
 const COLORS = {
@@ -33,9 +47,9 @@ const COLORS = {
   danger: '#ef4444',
   warning: '#f59e0b',
   info: '#3b82f6',
-}
+};
 
-const PIE_COLORS = [COLORS.success, COLORS.warning, COLORS.danger]
+const PIE_COLORS = [COLORS.success, COLORS.warning, COLORS.danger];
 
 export function AttendanceTrendChart({ data }: { data: AttendanceTrendData[] }) {
   if (!data || data.length === 0) {
@@ -43,7 +57,7 @@ export function AttendanceTrendChart({ data }: { data: AttendanceTrendData[] }) 
       <div className="flex h-[300px] items-center justify-center text-zinc-500">
         Aucune donnée disponible
       </div>
-    )
+    );
   }
 
   return (
@@ -52,39 +66,39 @@ export function AttendanceTrendChart({ data }: { data: AttendanceTrendData[] }) 
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis dataKey="date" stroke="#9ca3af" />
         <YAxis stroke="#9ca3af" />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#18181b', 
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#18181b',
             border: '1px solid #374151',
             borderRadius: '8px',
-            color: '#fff'
-          }} 
+            color: '#fff',
+          }}
         />
         <Legend />
-        <Line 
-          type="monotone" 
-          dataKey="present" 
-          stroke={COLORS.success} 
+        <Line
+          type="monotone"
+          dataKey="present"
+          stroke={COLORS.success}
           strokeWidth={2}
           name="Présents"
         />
-        <Line 
-          type="monotone" 
-          dataKey="late" 
-          stroke={COLORS.warning} 
+        <Line
+          type="monotone"
+          dataKey="late"
+          stroke={COLORS.warning}
           strokeWidth={2}
           name="En retard"
         />
-        <Line 
-          type="monotone" 
-          dataKey="absent" 
-          stroke={COLORS.danger} 
+        <Line
+          type="monotone"
+          dataKey="absent"
+          stroke={COLORS.danger}
           strokeWidth={2}
           name="Absents"
         />
       </LineChart>
     </ResponsiveContainer>
-  )
+  );
 }
 
 export function ClassStatsChart({ data }: { data: ClassStatsData[] }) {
@@ -93,7 +107,7 @@ export function ClassStatsChart({ data }: { data: ClassStatsData[] }) {
       <div className="flex h-[300px] items-center justify-center text-zinc-500">
         Aucune donnée disponible
       </div>
-    )
+    );
   }
 
   return (
@@ -102,24 +116,24 @@ export function ClassStatsChart({ data }: { data: ClassStatsData[] }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis dataKey="className" stroke="#9ca3af" />
         <YAxis stroke="#9ca3af" />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#18181b', 
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#18181b',
             border: '1px solid #374151',
             borderRadius: '8px',
-            color: '#fff'
-          }} 
+            color: '#fff',
+          }}
         />
         <Legend />
-        <Bar 
-          dataKey="attendanceRate" 
-          fill={COLORS.primary} 
+        <Bar
+          dataKey="attendanceRate"
+          fill={COLORS.primary}
           name="Taux de présence (%)"
           radius={[8, 8, 0, 0]}
         />
       </BarChart>
     </ResponsiveContainer>
-  )
+  );
 }
 
 export function HighRiskStudentsChart({ data }: { data: StudentRiskData[] }) {
@@ -128,11 +142,11 @@ export function HighRiskStudentsChart({ data }: { data: StudentRiskData[] }) {
       <div className="flex h-[300px] items-center justify-center text-zinc-500">
         Aucun étudiant à risque
       </div>
-    )
+    );
   }
 
   // Take top 10 high-risk students
-  const topRisk = data.slice(0, 10)
+  const topRisk = data.slice(0, 10);
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -140,39 +154,47 @@ export function HighRiskStudentsChart({ data }: { data: StudentRiskData[] }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis type="number" stroke="#9ca3af" />
         <YAxis dataKey="name" type="category" stroke="#9ca3af" width={150} />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#18181b', 
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#18181b',
             border: '1px solid #374151',
             borderRadius: '8px',
-            color: '#fff'
-          }} 
+            color: '#fff',
+          }}
         />
         <Legend />
-        <Bar 
-          dataKey="absences" 
-          fill={COLORS.danger} 
+        <Bar
+          dataKey="absences"
+          fill={COLORS.danger}
           name="Nombre d'absences"
           radius={[0, 8, 8, 0]}
         />
       </BarChart>
     </ResponsiveContainer>
-  )
+  );
 }
 
-export function AttendanceDistributionChart({ present, late, absent }: { present: number; late: number; absent: number }) {
+export function AttendanceDistributionChart({
+  present,
+  late,
+  absent,
+}: {
+  present: number;
+  late: number;
+  absent: number;
+}) {
   const data = [
     { name: 'Présents', value: present },
     { name: 'En retard', value: late },
     { name: 'Absents', value: absent },
-  ].filter(item => item.value > 0)
+  ].filter((item) => item.value > 0);
 
   if (data.length === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center text-zinc-500">
         Aucune donnée disponible
       </div>
-    )
+    );
   }
 
   return (
@@ -192,15 +214,15 @@ export function AttendanceDistributionChart({ present, late, absent }: { present
             <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: '#18181b', 
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#18181b',
             border: '1px solid #374151',
             borderRadius: '8px',
-            color: '#fff'
-          }} 
+            color: '#fff',
+          }}
         />
       </PieChart>
     </ResponsiveContainer>
-  )
+  );
 }

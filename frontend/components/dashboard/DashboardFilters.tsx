@@ -1,26 +1,32 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Calendar, Filter, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from 'react';
+import { Calendar, Filter, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface DashboardFilters {
-  className?: string
-  startDate?: string
-  endDate?: string
-  studentId?: string
-  status?: 'all' | 'present' | 'absent' | 'late' | 'excused'
+  className?: string;
+  startDate?: string;
+  endDate?: string;
+  studentId?: string;
+  status?: 'all' | 'present' | 'absent' | 'late' | 'excused';
 }
 
 interface DashboardFiltersProps {
-  filters: DashboardFilters
-  onFiltersChange: (filters: DashboardFilters) => void
-  availableClasses?: string[]
-  showStudentFilter?: boolean
-  showStatusFilter?: boolean
+  filters: DashboardFilters;
+  onFiltersChange: (filters: DashboardFilters) => void;
+  availableClasses?: string[];
+  showStudentFilter?: boolean;
+  showStatusFilter?: boolean;
 }
 
 export function DashboardFiltersPanel({
@@ -30,13 +36,13 @@ export function DashboardFiltersPanel({
   showStudentFilter = false,
   showStatusFilter = true,
 }: DashboardFiltersProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleReset = () => {
-    onFiltersChange({})
-  }
+    onFiltersChange({});
+  };
 
-  const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all')
+  const hasActiveFilters = Object.values(filters).some((value) => value && value !== 'all');
 
   return (
     <div className="space-y-4">
@@ -51,7 +57,7 @@ export function DashboardFiltersPanel({
           Filtres
           {hasActiveFilters && (
             <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-xs text-white">
-              {Object.values(filters).filter(v => v && v !== 'all').length}
+              {Object.values(filters).filter((v) => v && v !== 'all').length}
             </span>
           )}
         </Button>
@@ -107,9 +113,9 @@ export function DashboardFiltersPanel({
               <Select
                 value={filters.status || 'all'}
                 onValueChange={(value) =>
-                  onFiltersChange({ 
-                    ...filters, 
-                    status: value === 'all' ? undefined : value as any
+                  onFiltersChange({
+                    ...filters,
+                    status: value === 'all' ? undefined : (value as any),
                   })
                 }
               >
@@ -186,5 +192,5 @@ export function DashboardFiltersPanel({
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,16 +1,16 @@
 /**
  * Advanced filter drawer with date ranges, multi-select, and saved filters.
  */
-"use client";
+'use client';
 
-import { useState } from "react";
-import { X, Filter, Calendar, Search, Save, Trash2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from 'react';
+import { X, Filter, Calendar, Search, Save, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type FilterField = {
   name: string;
   label: string;
-  type: "text" | "select" | "multi-select" | "date-range" | "number-range";
+  type: 'text' | 'select' | 'multi-select' | 'date-range' | 'number-range';
   options?: { id: string; label: string }[];
   placeholder?: string;
 };
@@ -38,7 +38,7 @@ export default function AdvancedFilterDrawer({
 }: AdvancedFilterDrawerProps) {
   const [savedFilters, setSavedFilters] = useState<{ name: string; values: FilterValues }[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [filterName, setFilterName] = useState("");
+  const [filterName, setFilterName] = useState('');
 
   const handleChange = (name: string, value: any) => {
     onChange({ ...values, [name]: value });
@@ -47,7 +47,7 @@ export default function AdvancedFilterDrawer({
   const handleSaveFilter = () => {
     if (!filterName.trim()) return;
     setSavedFilters([...savedFilters, { name: filterName, values }]);
-    setFilterName("");
+    setFilterName('');
     setSaveDialogOpen(false);
   };
 
@@ -74,10 +74,10 @@ export default function AdvancedFilterDrawer({
 
           {/* Drawer */}
           <motion.div
-            initial={{ x: "100%" }}
+            initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-zinc-950 shadow-2xl"
           >
             {/* Header */}
@@ -99,7 +99,9 @@ export default function AdvancedFilterDrawer({
             {/* Saved Filters */}
             {savedFilters.length > 0 && (
               <div className="border-b border-white/10 px-6 py-4">
-                <p className="mb-2 text-xs uppercase tracking-wider text-zinc-500">Filtres sauvegardés</p>
+                <p className="mb-2 text-xs uppercase tracking-wider text-zinc-500">
+                  Filtres sauvegardés
+                </p>
                 <div className="space-y-2">
                   {savedFilters.map((filter, idx) => (
                     <div
@@ -129,20 +131,20 @@ export default function AdvancedFilterDrawer({
               {fields.map((field) => (
                 <div key={field.name}>
                   <label className="mb-2 block text-sm font-medium text-white">{field.label}</label>
-                  
-                  {field.type === "text" && (
+
+                  {field.type === 'text' && (
                     <input
                       type="text"
-                      value={values[field.name] || ""}
+                      value={values[field.name] || ''}
                       onChange={(e) => handleChange(field.name, e.target.value)}
                       placeholder={field.placeholder}
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
                     />
                   )}
 
-                  {field.type === "select" && (
+                  {field.type === 'select' && (
                     <select
-                      value={values[field.name] || ""}
+                      value={values[field.name] || ''}
                       onChange={(e) => handleChange(field.name, e.target.value)}
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
                     >
@@ -155,7 +157,7 @@ export default function AdvancedFilterDrawer({
                     </select>
                   )}
 
-                  {field.type === "multi-select" && (
+                  {field.type === 'multi-select' && (
                     <div className="space-y-2">
                       {field.options?.map((opt) => (
                         <label key={opt.id} className="flex items-center gap-2 text-sm text-white">
@@ -177,35 +179,35 @@ export default function AdvancedFilterDrawer({
                     </div>
                   )}
 
-                  {field.type === "date-range" && (
+                  {field.type === 'date-range' && (
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="date"
-                        value={values[`${field.name}_start`] || ""}
+                        value={values[`${field.name}_start`] || ''}
                         onChange={(e) => handleChange(`${field.name}_start`, e.target.value)}
                         className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
                       />
                       <input
                         type="date"
-                        value={values[`${field.name}_end`] || ""}
+                        value={values[`${field.name}_end`] || ''}
                         onChange={(e) => handleChange(`${field.name}_end`, e.target.value)}
                         className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
                       />
                     </div>
                   )}
 
-                  {field.type === "number-range" && (
+                  {field.type === 'number-range' && (
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
-                        value={values[`${field.name}_min`] || ""}
+                        value={values[`${field.name}_min`] || ''}
                         onChange={(e) => handleChange(`${field.name}_min`, e.target.value)}
                         placeholder="Min"
                         className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
                       />
                       <input
                         type="number"
-                        value={values[`${field.name}_max`] || ""}
+                        value={values[`${field.name}_max`] || ''}
                         onChange={(e) => handleChange(`${field.name}_max`, e.target.value)}
                         placeholder="Max"
                         className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"

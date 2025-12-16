@@ -1,6 +1,7 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
 
 
 class ChatbotMessageCreate(BaseModel):
@@ -35,3 +36,8 @@ class ChatbotConversationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ChatbotAskIn(BaseModel):
+    """Input model for quick ask endpoint when sent as JSON body."""
+    question: str

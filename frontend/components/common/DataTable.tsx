@@ -24,10 +24,12 @@ export default function DataTable<T extends { id: number }>({
   columns,
   rowsPerPage = 10,
   emptyMessage = 'No data available',
-  onRowClick
+  onRowClick,
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [sortConfig, setSortConfig] = useState<{ key: keyof T; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof T; direction: 'asc' | 'desc' } | null>(
+    null,
+  );
 
   // Sort data
   let sortedData = [...data];
@@ -48,10 +50,10 @@ export default function DataTable<T extends { id: number }>({
   const paginatedData = sortedData.slice(startIdx, startIdx + rowsPerPage);
 
   const toggleSort = (accessor: keyof T) => {
-    setSortConfig(prev =>
+    setSortConfig((prev) =>
       prev?.key === accessor && prev.direction === 'asc'
         ? { key: accessor, direction: 'desc' }
-        : { key: accessor, direction: 'asc' }
+        : { key: accessor, direction: 'asc' },
     );
     setCurrentPage(0);
   };
@@ -71,7 +73,7 @@ export default function DataTable<T extends { id: number }>({
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              {columns.map(col => (
+              {columns.map((col) => (
                 <th
                   key={String(col.accessor)}
                   className={`px-4 py-3 text-left font-semibold text-gray-700 ${col.width || ''} ${
@@ -81,9 +83,13 @@ export default function DataTable<T extends { id: number }>({
                 >
                   <div className="flex items-center gap-2">
                     {col.header}
-                    {col.sortable && sortConfig?.key === col.accessor && (
-                      sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                    )}
+                    {col.sortable &&
+                      sortConfig?.key === col.accessor &&
+                      (sortConfig.direction === 'asc' ? (
+                        <ChevronUp size={14} />
+                      ) : (
+                        <ChevronDown size={14} />
+                      ))}
                   </div>
                 </th>
               ))}
@@ -96,7 +102,7 @@ export default function DataTable<T extends { id: number }>({
                 className={`border-b border-gray-200 hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
                 onClick={() => onRowClick?.(item)}
               >
-                {columns.map(col => (
+                {columns.map((col) => (
                   <td key={String(col.accessor)} className="px-4 py-3 text-gray-700">
                     {col.render
                       ? col.render((item as any)[col.accessor], item)
@@ -113,7 +119,8 @@ export default function DataTable<T extends { id: number }>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200">
           <p className="text-sm text-gray-600">
-            Showing {startIdx + 1} to {Math.min(startIdx + rowsPerPage, sortedData.length)} of {sortedData.length}
+            Showing {startIdx + 1} to {Math.min(startIdx + rowsPerPage, sortedData.length)} of{' '}
+            {sortedData.length}
           </p>
           <div className="flex gap-2">
             <button

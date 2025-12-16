@@ -36,7 +36,9 @@ export default function AdvancedFilters({
       return {};
     }
   });
-  const activeCount = Object.values(values).filter((v) => v && (Array.isArray(v) ? v.length > 0 : true)).length;
+  const activeCount = Object.values(values).filter(
+    (v) => v && (Array.isArray(v) ? v.length > 0 : true),
+  ).length;
 
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -76,7 +78,9 @@ export default function AdvancedFilters({
       {isOpen && (
         <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-white/10 bg-zinc-900 shadow-xl dark:border-white/10 dark:bg-zinc-900 light:border-gray-200 light:bg-white light:shadow-lg">
           <div className="flex items-center justify-between border-b border-white/10 p-4 dark:border-white/10 light:border-gray-200">
-            <h3 className="font-semibold text-white dark:text-white light:text-gray-900">Filtres avancés</h3>
+            <h3 className="font-semibold text-white dark:text-white light:text-gray-900">
+              Filtres avancés
+            </h3>
             <button
               onClick={() => setIsOpen(false)}
               className="rounded p-1 hover:bg-white/10 dark:hover:bg-white/10 light:hover:bg-gray-100"
@@ -111,7 +115,11 @@ export default function AdvancedFilters({
                   >
                     <option value="">Tous</option>
                     {filter.options?.map((opt) => (
-                      <option key={opt.id} value={opt.id} className="bg-zinc-800 text-white dark:bg-zinc-800">
+                      <option
+                        key={opt.id}
+                        value={opt.id}
+                        className="bg-zinc-800 text-white dark:bg-zinc-800"
+                      >
                         {opt.label}
                       </option>
                     ))}
@@ -132,13 +140,15 @@ export default function AdvancedFilters({
                             } else {
                               handleChange(
                                 filter.name,
-                                current.filter((id: string) => id !== opt.id)
+                                current.filter((id: string) => id !== opt.id),
                               );
                             }
                           }}
                           className="h-4 w-4 rounded border-white/20 bg-white/5 text-amber-600 focus:ring-2 focus:ring-amber-600"
                         />
-                        <span className="text-zinc-300 dark:text-zinc-300 light:text-gray-700">{opt.label}</span>
+                        <span className="text-zinc-300 dark:text-zinc-300 light:text-gray-700">
+                          {opt.label}
+                        </span>
                       </label>
                     ))}
                   </div>

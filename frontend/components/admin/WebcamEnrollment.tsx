@@ -1,9 +1,13 @@
-"use client";
-import Webcam from "react-webcam";
-import { useCallback, useRef, useState } from "react";
-import Image from "next/image";
+'use client';
+import Webcam from 'react-webcam';
+import { useCallback, useRef, useState } from 'react';
+import Image from 'next/image';
 
-export default function WebcamEnrollment({ onCaptured }: { onCaptured: (images: string[]) => void }) {
+export default function WebcamEnrollment({
+  onCaptured,
+}: {
+  onCaptured: (images: string[]) => void;
+}) {
   const webcamRef = useRef<Webcam>(null);
   const [shots, setShots] = useState<string[]>([]);
 

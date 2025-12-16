@@ -1,17 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Calendar,
-  BarChart3,
-  Filter,
-} from "lucide-react";
-import { getApiBase } from "@/lib/config";
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { TrendingUp, TrendingDown, Users, Calendar, BarChart3, Filter } from 'lucide-react';
+import { getApiBase } from '@/lib/config';
 
 const apiBase = getApiBase();
 
@@ -31,11 +24,11 @@ type ClassStats = {
 };
 
 export default function AnalyticsClient() {
-  const [dateRange, setDateRange] = useState<"week" | "month" | "year">("month");
-  const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<'week' | 'month' | 'year'>('month');
+  const [selectedClass, setSelectedClass] = useState<string>('all');
 
   const { data: attendance = [] } = useQuery({
-    queryKey: ["admin-analytics-attendance", dateRange],
+    queryKey: ['admin-analytics-attendance', dateRange],
     queryFn: async () => {
       const res = await axios
         .get(`${apiBase}/api/admin/analytics/attendance`, {
@@ -43,11 +36,11 @@ export default function AnalyticsClient() {
         })
         .catch(() => ({
           data: [
-            { date: "2025-01-10", present: 85, absent: 10, late: 5, total: 100 },
-            { date: "2025-01-11", present: 88, absent: 8, late: 4, total: 100 },
-            { date: "2025-01-12", present: 82, absent: 12, late: 6, total: 100 },
-            { date: "2025-01-13", present: 90, absent: 7, late: 3, total: 100 },
-            { date: "2025-01-14", present: 87, absent: 9, late: 4, total: 100 },
+            { date: '2025-01-10', present: 85, absent: 10, late: 5, total: 100 },
+            { date: '2025-01-11', present: 88, absent: 8, late: 4, total: 100 },
+            { date: '2025-01-12', present: 82, absent: 12, late: 6, total: 100 },
+            { date: '2025-01-13', present: 90, absent: 7, late: 3, total: 100 },
+            { date: '2025-01-14', present: 87, absent: 9, late: 4, total: 100 },
           ],
         }));
       return res.data as AttendanceData[];
@@ -55,13 +48,28 @@ export default function AnalyticsClient() {
   });
 
   const { data: classes = [] } = useQuery({
-    queryKey: ["admin-analytics-classes"],
+    queryKey: ['admin-analytics-classes'],
     queryFn: async () => {
       const res = await axios.get(`${apiBase}/api/admin/analytics/classes`).catch(() => ({
         data: [
-          { class_name: "Développement Web I", attendance_rate: 88.5, total_students: 30, avg_absences: 2.3 },
-          { class_name: "Base de Données", attendance_rate: 92.1, total_students: 28, avg_absences: 1.8 },
-          { class_name: "Réseau & Sécurité", attendance_rate: 85.2, total_students: 25, avg_absences: 2.9 },
+          {
+            class_name: 'Développement Web I',
+            attendance_rate: 88.5,
+            total_students: 30,
+            avg_absences: 2.3,
+          },
+          {
+            class_name: 'Base de Données',
+            attendance_rate: 92.1,
+            total_students: 28,
+            avg_absences: 1.8,
+          },
+          {
+            class_name: 'Réseau & Sécurité',
+            attendance_rate: 85.2,
+            total_students: 25,
+            avg_absences: 2.9,
+          },
         ],
       }));
       return res.data as ClassStats[];
@@ -81,8 +89,11 @@ export default function AnalyticsClient() {
 
   const trend = useMemo(() => {
     if (attendance.length < 2) return 0;
-    const recent = attendance.slice(-3).reduce((sum, d) => sum + (d.present / d.total) * 100, 0) / 3;
-    const previous = attendance.slice(0, -3).reduce((sum, d) => sum + (d.present / d.total) * 100, 0) / (attendance.length - 3);
+    const recent =
+      attendance.slice(-3).reduce((sum, d) => sum + (d.present / d.total) * 100, 0) / 3;
+    const previous =
+      attendance.slice(0, -3).reduce((sum, d) => sum + (d.present / d.total) * 100, 0) /
+      (attendance.length - 3);
     return ((recent - previous) / previous) * 100;
   }, [attendance]);
 
@@ -93,18 +104,20 @@ export default function AnalyticsClient() {
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-zinc-400" />
-          <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">Période:</span>
-          {(["week", "month", "year"] as const).map((range) => (
+          <span className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+            Période:
+          </span>
+          {(['week', 'month', 'year'] as const).map((range) => (
             <button
               key={range}
               onClick={() => setDateRange(range)}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
                 dateRange === range
-                  ? "bg-blue-600 text-white"
-                  : "bg-white/5 text-zinc-400 hover:bg-white/10 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 light:bg-gray-100 light:text-gray-600 light:hover:bg-gray-200"
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white/5 text-zinc-400 hover:bg-white/10 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10 light:bg-gray-100 light:text-gray-600 light:hover:bg-gray-200'
               }`}
             >
-              {range === "week" ? "Semaine" : range === "month" ? "Mois" : "Année"}
+              {range === 'week' ? 'Semaine' : range === 'month' ? 'Mois' : 'Année'}
             </button>
           ))}
         </div>
@@ -141,8 +154,8 @@ export default function AnalyticsClient() {
             )}
           </div>
           <div className="mt-2 flex items-center gap-1">
-            <span className={`text-xs ${trend > 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {trend > 0 ? "+" : ""}
+            <span className={`text-xs ${trend > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {trend > 0 ? '+' : ''}
               {trend.toFixed(1)}%
             </span>
             <span className="text-xs text-zinc-500 dark:text-zinc-500 light:text-gray-500">
@@ -207,7 +220,9 @@ export default function AnalyticsClient() {
             return (
               <div key={idx} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-300 dark:text-zinc-300 light:text-gray-700">{day.date}</span>
+                  <span className="text-zinc-300 dark:text-zinc-300 light:text-gray-700">
+                    {day.date}
+                  </span>
                   <span className="text-zinc-400 dark:text-zinc-400 light:text-gray-600">
                     {day.present}/{day.total}
                   </span>
@@ -261,7 +276,9 @@ export default function AnalyticsClient() {
             <div key={cls.class_name} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-white dark:text-white light:text-gray-900">{cls.class_name}</h3>
+                  <h3 className="font-medium text-white dark:text-white light:text-gray-900">
+                    {cls.class_name}
+                  </h3>
                   <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600">
                     {cls.total_students} étudiants • Avg {cls.avg_absences} absences
                   </p>
@@ -269,10 +286,10 @@ export default function AnalyticsClient() {
                 <span
                   className={`px-3 py-1 rounded-lg text-sm font-medium ${
                     cls.attendance_rate >= 90
-                      ? "bg-emerald-600/20 text-emerald-300"
+                      ? 'bg-emerald-600/20 text-emerald-300'
                       : cls.attendance_rate >= 80
-                      ? "bg-blue-600/20 text-blue-300"
-                      : "bg-red-600/20 text-red-300"
+                        ? 'bg-blue-600/20 text-blue-300'
+                        : 'bg-red-600/20 text-red-300'
                   }`}
                 >
                   {cls.attendance_rate.toFixed(1)}%
@@ -283,10 +300,10 @@ export default function AnalyticsClient() {
                   style={{ width: `${cls.attendance_rate}%` }}
                   className={`h-full ${
                     cls.attendance_rate >= 90
-                      ? "bg-emerald-600"
+                      ? 'bg-emerald-600'
                       : cls.attendance_rate >= 80
-                      ? "bg-blue-600"
-                      : "bg-red-600"
+                        ? 'bg-blue-600'
+                        : 'bg-red-600'
                   }`}
                 ></div>
               </div>

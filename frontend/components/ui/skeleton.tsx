@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 /**
  * Generic skeleton component for single elements.

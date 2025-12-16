@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
-import { FileQuestion, Inbox, Database } from "lucide-react";
+import { ReactNode } from 'react';
+import { FileQuestion, Inbox, Database } from 'lucide-react';
 
 type EmptyStateProps = {
   icon?: ReactNode;
@@ -26,9 +26,7 @@ export default function EmptyState({
         {icon || <Inbox className="h-12 w-12" />}
       </div>
       <h3 className="mb-2 text-lg font-semibold text-white">{title}</h3>
-      {description && (
-        <p className="mb-6 max-w-md text-sm text-white/60">{description}</p>
-      )}
+      {description && <p className="mb-6 max-w-md text-sm text-white/60">{description}</p>}
       {actionLabel && onAction && (
         <button
           onClick={onAction}

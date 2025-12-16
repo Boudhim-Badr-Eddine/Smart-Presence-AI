@@ -1,15 +1,9 @@
 /* eslint-disable no-restricted-globals */
 const CACHE_NAME = 'smart-presence-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/auth/login',
-  '/globals.css',
-];
+const STATIC_ASSETS = ['/', '/auth/login', '/globals.css'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
@@ -21,9 +15,9 @@ self.addEventListener('activate', (event) => {
           if (key !== CACHE_NAME) {
             return caches.delete(key);
           }
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
   self.clients.claim();
 });
@@ -49,6 +43,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       });
-    })
+    }),
   );
 });

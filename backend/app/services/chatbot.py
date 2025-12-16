@@ -1,8 +1,10 @@
-from sqlalchemy.orm import Session
-from app.models.chatbot import ChatbotConversation, ChatbotMessage
-from app.schemas.chatbot import ChatbotMessageCreate
-from datetime import datetime
 import json
+from datetime import datetime
+
+from sqlalchemy.orm import Session
+
+from app.models.chatbot import ChatbotConversation, ChatbotMessage
+from app.services.gemini_service import GeminiService
 
 
 class ChatbotService:
@@ -34,6 +36,14 @@ class ChatbotService:
             "keywords": ["contact", "formateur", "trainer", "professeur", "mail"],
             "response": "Vous pouvez contacter votre formateur via l'onglet 'Contacts' ou par email indiqué dans votre profil.",
         },
+        "notifications": {
+            "keywords": ["notification", "notifications", "alerte", "alertes", "notify", "bell"],
+            "response": "Vos notifications récentes sont visibles dans l'onglet 'Notifications'. Vous pouvez activer/désactiver les alertes dans les paramètres.",
+        },
+        "salut": {
+            "keywords": ["bonjour", "salut", "hello", "hi"],
+            "response": "Bonjour ! Comment puis-je vous aider ? Vous pouvez me demander vos horaires, absences, justifications, examens, notes ou contacts.",
+        },
     }
 
     @staticmethod
@@ -54,14 +64,10 @@ class ChatbotService:
         return conversation
 
     @staticmethod
-    def send_message(
-        db: Session, conversation_id: int, user_message: str
-    ) -> ChatbotMessage:
+    def send_message(db: Session, conversation_id: int, user_message: str, user_id: int = None) -> ChatbotMessage:
         """Process user message and return assistant response."""
         conversation = (
-            db.query(ChatbotConversation)
-            .filter(ChatbotConversation.id == conversation_id)
-            .first()
+            db.query(ChatbotConversation).filter(ChatbotConversation.id == conversation_id).first()
         )
         if not conversation:
             return None
@@ -74,8 +80,14 @@ class ChatbotService:
         )
         db.add(user_msg)
 
-        # Generate assistant response
-        response_text = ChatbotService.generate_response(user_message)
+        # Build user context for Gemini
+        user_context = {
+            "role": conversation.user_type,
+            "user_id": user_id or conversation.user_id,
+        }
+
+        # Generate assistant response with Gemini
+        response_text = ChatbotService.generate_response(user_message, user_context)
         intent = ChatbotService.detect_intent(user_message)
 
         assistant_msg = ChatbotMessage(
@@ -96,8 +108,26 @@ class ChatbotService:
         return assistant_msg
 
     @staticmethod
-    def generate_response(user_message: str) -> str:
-        """Generate chatbot response based on user message."""
+    def generate_response(user_message: str, user_context: dict = None) -> str:
+        """Generate chatbot response using Gemini AI with application context."""
+        try:
+            # Try to use Gemini AI first
+            gemini_service = GeminiService()
+            response = gemini_service.generate_response(user_message, user_context)
+
+            if response and not response.startswith("Error"):
+                return response
+
+            # Fallback to FAQ-based response if Gemini fails
+            return ChatbotService._generate_faq_response(user_message)
+
+        except Exception as e:
+            # Fallback to FAQ if Gemini service fails
+            return ChatbotService._generate_faq_response(user_message)
+
+    @staticmethod
+    def _generate_faq_response(user_message: str) -> str:
+        """Generate response based on FAQ knowledge base (fallback)."""
         user_lower = user_message.lower()
 
         # Check each FAQ category
@@ -137,9 +167,7 @@ class ChatbotService:
     def close_conversation(db: Session, conversation_id: int):
         """Close a conversation."""
         conversation = (
-            db.query(ChatbotConversation)
-            .filter(ChatbotConversation.id == conversation_id)
-            .first()
+            db.query(ChatbotConversation).filter(ChatbotConversation.id == conversation_id).first()
         )
         if conversation:
             conversation.is_active = False
@@ -148,14 +176,10 @@ class ChatbotService:
         return conversation
 
     @staticmethod
-    def set_satisfaction_score(
-        db: Session, conversation_id: int, score: int, feedback: str = None
-    ):
+    def set_satisfaction_score(db: Session, conversation_id: int, score: int, feedback: str = None):
         """Set user satisfaction with chatbot."""
         conversation = (
-            db.query(ChatbotConversation)
-            .filter(ChatbotConversation.id == conversation_id)
-            .first()
+            db.query(ChatbotConversation).filter(ChatbotConversation.id == conversation_id).first()
         )
         if conversation:
             conversation.user_satisfaction_score = score

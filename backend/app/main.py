@@ -1,27 +1,24 @@
+import os
+import time
+from datetime import datetime
+from pathlib import Path
+
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from app.api.router import api_router
 from app.core.config import get_settings
-from app.core.logging_config import setup_logging, get_logger
-from app.core.monitoring import metrics_collector, health_status, RequestMetric
+from app.core.logging_config import get_logger, setup_logging
+from app.core.monitoring import RequestMetric, health_status, metrics_collector
 from app.utils.scheduler import scheduler
-import time
-import os
-from pathlib import Path
-from datetime import datetime
 
 # Setup comprehensive logging
-setup_logging(
-    log_level="INFO",
-    include_console=True,
-    include_file=True,
-    json_output=True
-)
+setup_logging(log_level="INFO", include_console=True, include_file=True, json_output=True)
 
 logger = get_logger(__name__)
 
@@ -32,7 +29,7 @@ app = FastAPI(
     description="Smart Presence AI - Intelligent Attendance Management System",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Response compression for bandwidth savings
@@ -58,23 +55,23 @@ app.mount("/storage", StaticFiles(directory=str(storage_dir)), name="storage")
 async def log_requests(request: Request, call_next):
     """Log all incoming requests and measure response time with metrics"""
     start_time = time.time()
-    
+
     # Log request
     logger.info(f"Request: {request.method} {request.url.path}")
-    
+
     # Process request
     response = await call_next(request)
-    
+
     # Calculate duration
     duration = time.time() - start_time
     duration_ms = duration * 1000
-    
+
     # Log response
     logger.info(
         f"Response: {request.method} {request.url.path} "
         f"Status: {response.status_code} Duration: {duration_ms:.1f}ms"
     )
-    
+
     # Record metrics
     metric = RequestMetric(
         timestamp=datetime.utcnow().isoformat(),
@@ -83,13 +80,13 @@ async def log_requests(request: Request, call_next):
         status_code=response.status_code,
         duration_ms=duration_ms,
         user_id=None,  # Can be extracted from request context if available
-        error=None if response.status_code < 400 else f"Status {response.status_code}"
+        error=None if response.status_code < 400 else f"Status {response.status_code}",
     )
     metrics_collector.record_request(metric)
-    
+
     # Add performance header
     response.headers["X-Response-Time"] = f"{duration_ms:.1f}ms"
-    
+
     return response
 
 
@@ -104,8 +101,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             "success": False,
             "error": "http_error",
             "message": exc.detail,
-            "status_code": exc.status_code
-        }
+            "status_code": exc.status_code,
+        },
     )
 
 
@@ -114,12 +111,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """Handle validation errors with detailed feedback"""
     errors = []
     for error in exc.errors():
-        errors.append({
-            "field": " -> ".join(str(x) for x in error["loc"]),
-            "message": error["msg"],
-            "type": error["type"]
-        })
-    
+        errors.append(
+            {
+                "field": " -> ".join(str(x) for x in error["loc"]),
+                "message": error["msg"],
+                "type": error["type"],
+            }
+        )
+
     logger.warning(f"Validation error: {errors}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -127,8 +126,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "success": False,
             "error": "validation_error",
             "message": "Invalid request data",
-            "details": errors
-        }
+            "details": errors,
+        },
     )
 
 
@@ -142,8 +141,8 @@ async def general_exception_handler(request: Request, exc: Exception):
             "success": False,
             "error": "internal_server_error",
             "message": "An unexpected error occurred. Please try again later.",
-            "details": str(exc) if settings.debug else None
-        }
+            "details": str(exc) if settings.debug else None,
+        },
     )
 
 
@@ -165,7 +164,7 @@ async def metrics_summary() -> dict:
     return {
         "requests": metrics_collector.get_request_stats(hours=1),
         "errors": metrics_collector.get_error_stats(hours=24),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -185,11 +184,7 @@ async def metrics_errors(hours: int = 24) -> dict:
 async def export_metrics() -> dict:
     """Export all collected metrics to file"""
     filepath = metrics_collector.export_metrics()
-    return {
-        "success": True,
-        "message": "Metrics exported successfully",
-        "filepath": filepath
-    }
+    return {"success": True, "message": "Metrics exported successfully", "filepath": filepath}
 
 
 @app.post("/metrics/cleanup", tags=["Metrics"])
@@ -198,7 +193,7 @@ async def cleanup_metrics() -> dict:
     metrics_collector.cleanup_old_metrics()
     return {
         "success": True,
-        "message": f"Metrics older than {metrics_collector.retention_days} days cleaned up"
+        "message": f"Metrics older than {metrics_collector.retention_days} days cleaned up",
     }
 
 
@@ -211,7 +206,7 @@ async def root() -> dict:
         "docs": "/docs",
         "api": "/api",
         "health": "/health",
-        "metrics": "/metrics/summary"
+        "metrics": "/metrics/summary",
     }
 
 

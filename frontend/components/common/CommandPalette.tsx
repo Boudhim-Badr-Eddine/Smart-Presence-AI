@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
-import axios from "axios";
-import { getApiBase } from "@/lib/config";
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search } from 'lucide-react';
+import axios from 'axios';
+import { getApiBase } from '@/lib/config';
 
 type SearchResult = {
   id: string;
-  type: "student" | "trainer" | "session" | "class";
+  type: 'student' | 'trainer' | 'session' | 'class';
   title: string;
   subtitle?: string;
   href: string;
@@ -16,41 +16,38 @@ type SearchResult = {
 
 export default function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen(!isOpen);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const search = useCallback(
-    async (q: string) => {
-      if (!q.trim()) {
-        setResults([]);
-        return;
-      }
+  const search = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      return;
+    }
 
-      try {
-        const apiBase = getApiBase();
-        const res = await axios.get(`${apiBase}/api/search`, { params: { q } });
-        setResults(res.data.results);
-        setSelectedIndex(0);
-      } catch (e) {
-        console.error("Search error:", e);
-      }
-    },
-    []
-  );
+    try {
+      const apiBase = getApiBase();
+      const res = await axios.get(`${apiBase}/api/search`, { params: { q } });
+      setResults(res.data.results);
+      setSelectedIndex(0);
+    } catch (e) {
+      console.error('Search error:', e);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => search(query), 300);
@@ -60,22 +57,22 @@ export default function CommandPalette() {
   const handleSelect = (result: SearchResult) => {
     router.push(result.href);
     setIsOpen(false);
-    setQuery("");
+    setQuery('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter") {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       if (results[selectedIndex]) {
         handleSelect(results[selectedIndex]);
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
   };
@@ -113,14 +110,12 @@ export default function CommandPalette() {
                 onClick={() => handleSelect(result)}
                 className={`w-full px-3 py-2 text-left text-sm transition ${
                   index === selectedIndex
-                    ? "bg-amber-600/20 text-amber-300"
-                    : "text-zinc-200 hover:bg-zinc-900"
+                    ? 'bg-amber-600/20 text-amber-300'
+                    : 'text-zinc-200 hover:bg-zinc-900'
                 }`}
               >
                 <div className="font-medium">{result.title}</div>
-                {result.subtitle && (
-                  <div className="text-xs text-zinc-500">{result.subtitle}</div>
-                )}
+                {result.subtitle && <div className="text-xs text-zinc-500">{result.subtitle}</div>}
               </button>
             ))
           )}

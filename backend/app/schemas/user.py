@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+
 from app.schemas.common import Timestamped
 
 

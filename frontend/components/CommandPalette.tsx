@@ -2,11 +2,11 @@
  * Global command palette for quick navigation and actions.
  * Press Cmd+K (Mac) or Ctrl+K (Windows/Linux) to open.
  */
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Users,
@@ -21,9 +21,9 @@ import {
   LogOut,
   Command,
   Loader2,
-} from "lucide-react";
-import axios from "axios";
-import { getApiBase } from "@/lib/config";
+} from 'lucide-react';
+import axios from 'axios';
+import { getApiBase } from '@/lib/config';
 
 type CommandItem = {
   id: string;
@@ -36,7 +36,7 @@ type CommandItem = {
 
 export default function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [remoteResults, setRemoteResults] = useState<CommandItem[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -45,108 +45,108 @@ export default function CommandPalette() {
   // Keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         setIsOpen(false);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const commands: CommandItem[] = useMemo(
     () => [
       {
-        id: "nav-trainers",
-        label: "Formateurs",
+        id: 'nav-trainers',
+        label: 'Formateurs',
         icon: <Users className="h-4 w-4" />,
-        action: () => router.push("/admin/trainers"),
-        keywords: ["trainers", "formateurs", "teachers"],
-        category: "Navigation",
+        action: () => router.push('/admin/trainers'),
+        keywords: ['trainers', 'formateurs', 'teachers'],
+        category: 'Navigation',
       },
       {
-        id: "nav-students",
-        label: "Étudiants",
+        id: 'nav-students',
+        label: 'Étudiants',
         icon: <GraduationCap className="h-4 w-4" />,
-        action: () => router.push("/admin/students"),
-        keywords: ["students", "étudiants", "pupils"],
-        category: "Navigation",
+        action: () => router.push('/admin/students'),
+        keywords: ['students', 'étudiants', 'pupils'],
+        category: 'Navigation',
       },
       {
-        id: "nav-faces",
-        label: "Enrôlement facial",
+        id: 'nav-faces',
+        label: 'Enrôlement facial',
         icon: <Camera className="h-4 w-4" />,
-        action: () => router.push("/admin/faces"),
-        keywords: ["faces", "facial", "biometric", "enroll"],
-        category: "Navigation",
+        action: () => router.push('/admin/faces'),
+        keywords: ['faces', 'facial', 'biometric', 'enroll'],
+        category: 'Navigation',
       },
       {
-        id: "nav-users",
-        label: "Créer un utilisateur",
+        id: 'nav-users',
+        label: 'Créer un utilisateur',
         icon: <Users className="h-4 w-4" />,
-        action: () => router.push("/admin/users"),
-        keywords: ["users", "create", "account"],
-        category: "Navigation",
+        action: () => router.push('/admin/users'),
+        keywords: ['users', 'create', 'account'],
+        category: 'Navigation',
       },
       {
-        id: "nav-sessions",
-        label: "Sessions",
+        id: 'nav-sessions',
+        label: 'Sessions',
         icon: <Calendar className="h-4 w-4" />,
-        action: () => router.push("/admin/sessions"),
-        keywords: ["sessions", "classes", "schedule"],
-        category: "Navigation",
+        action: () => router.push('/admin/sessions'),
+        keywords: ['sessions', 'classes', 'schedule'],
+        category: 'Navigation',
       },
       {
-        id: "nav-analytics",
-        label: "Analytique",
+        id: 'nav-analytics',
+        label: 'Analytique',
         icon: <BarChart3 className="h-4 w-4" />,
-        action: () => router.push("/admin/analytics"),
-        keywords: ["analytics", "stats", "reports"],
-        category: "Navigation",
+        action: () => router.push('/admin/analytics'),
+        keywords: ['analytics', 'stats', 'reports'],
+        category: 'Navigation',
       },
       {
-        id: "nav-assistant",
-        label: "Assistant IA",
+        id: 'nav-assistant',
+        label: 'Assistant IA',
         icon: <MessageSquare className="h-4 w-4" />,
-        action: () => router.push("/assistant"),
-        keywords: ["assistant", "chatbot", "ai", "help"],
-        category: "Outils",
+        action: () => router.push('/assistant'),
+        keywords: ['assistant', 'chatbot', 'ai', 'help'],
+        category: 'Outils',
       },
       {
-        id: "nav-notifications",
-        label: "Notifications",
+        id: 'nav-notifications',
+        label: 'Notifications',
         icon: <Bell className="h-4 w-4" />,
-        action: () => router.push("/admin/notifications"),
-        keywords: ["notifications", "alerts"],
-        category: "Navigation",
+        action: () => router.push('/admin/notifications'),
+        keywords: ['notifications', 'alerts'],
+        category: 'Navigation',
       },
       {
-        id: "action-logout",
-        label: "Se déconnecter",
+        id: 'action-logout',
+        label: 'Se déconnecter',
         icon: <LogOut className="h-4 w-4" />,
         action: () => {
-          localStorage.removeItem("spa_access_token");
-          router.push("/auth/login");
+          localStorage.removeItem('spa_access_token');
+          router.push('/auth/login');
         },
-        keywords: ["logout", "sign out", "disconnect"],
-        category: "Actions",
+        keywords: ['logout', 'sign out', 'disconnect'],
+        category: 'Actions',
       },
     ],
-    [router]
+    [router],
   );
 
   const filteredCommands = useMemo(() => {
     if (!search) return [...commands, ...remoteResults];
-    
+
     const lowerSearch = search.toLowerCase();
     return [...commands, ...remoteResults].filter(
       (cmd) =>
         cmd.label.toLowerCase().includes(lowerSearch) ||
-        cmd.keywords?.some((kw) => kw.toLowerCase().includes(lowerSearch))
+        cmd.keywords?.some((kw) => kw.toLowerCase().includes(lowerSearch)),
     );
   }, [search, commands, remoteResults]);
 
@@ -158,18 +158,20 @@ export default function CommandPalette() {
       }
       setLoading(true);
       try {
-        const res = await axios.get(`${apiBase}/api/admin/search?q=${encodeURIComponent(term)}&limit=12`);
+        const res = await axios.get(
+          `${apiBase}/api/admin/search?q=${encodeURIComponent(term)}&limit=12`,
+        );
         const items = (res.data?.items || []).map((item: any) => ({
           id: `${item.entity}-${item.id}`,
           label: item.title,
           icon: <Search className="h-4 w-4" />,
           action: () => {
-            if (item.entity === "student") router.push(`/admin/students?focus=${item.id}`);
-            if (item.entity === "trainer") router.push(`/admin/trainers?focus=${item.id}`);
-            if (item.entity === "session") router.push(`/admin/sessions?focus=${item.id}`);
+            if (item.entity === 'student') router.push(`/admin/students?focus=${item.id}`);
+            if (item.entity === 'trainer') router.push(`/admin/trainers?focus=${item.id}`);
+            if (item.entity === 'session') router.push(`/admin/sessions?focus=${item.id}`);
           },
-          keywords: [item.subtitle || "", item.entity],
-          category: "Recherche"
+          keywords: [item.subtitle || '', item.entity],
+          category: 'Recherche',
         }));
         setRemoteResults(items);
       } catch {
@@ -178,7 +180,7 @@ export default function CommandPalette() {
         setLoading(false);
       }
     },
-    [apiBase, router]
+    [apiBase, router],
   );
 
   // Debounce remote search
@@ -190,7 +192,7 @@ export default function CommandPalette() {
   const handleSelect = (command: CommandItem) => {
     command.action();
     setIsOpen(false);
-    setSearch("");
+    setSearch('');
   };
 
   return (
@@ -225,7 +227,12 @@ export default function CommandPalette() {
                 autoFocus
               />
               <div className="flex items-center gap-1 rounded border border-white/20 px-2 py-1 text-xs text-zinc-400">
-                {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Command className="h-3 w-3" />}K
+                {loading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Command className="h-3 w-3" />
+                )}
+                K
               </div>
             </div>
 
@@ -238,12 +245,15 @@ export default function CommandPalette() {
               ) : (
                 <div>
                   {Object.entries(
-                    filteredCommands.reduce((acc, cmd) => {
-                      const cat = cmd.category || "Autre";
-                      if (!acc[cat]) acc[cat] = [];
-                      acc[cat].push(cmd);
-                      return acc;
-                    }, {} as Record<string, CommandItem[]>)
+                    filteredCommands.reduce(
+                      (acc, cmd) => {
+                        const cat = cmd.category || 'Autre';
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push(cmd);
+                        return acc;
+                      },
+                      {} as Record<string, CommandItem[]>,
+                    ),
                   ).map(([category, items]) => (
                     <div key={category}>
                       <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">

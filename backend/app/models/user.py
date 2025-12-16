@@ -1,14 +1,13 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Index
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String
 from sqlalchemy.sql import func
+
 from app.db.base import Base
 
 
 class User(Base):
     __tablename__ = "users"
 
-    __table_args__ = (
-        Index("ix_users_role_active", "role", "is_active"),
-    )
+    __table_args__ = (Index("ix_users_role_active", "role", "is_active"),)
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False)

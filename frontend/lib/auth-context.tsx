@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { getApiBase } from "./config";
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { getApiBase } from './config';
 
-type UserRole = "admin" | "trainer" | "student";
+type UserRole = 'admin' | 'trainer' | 'student';
 
 type User = {
   id: number;
@@ -25,8 +25,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = "spa_access_token";
-const USER_KEY = "spa_user";
+const TOKEN_KEY = 'spa_access_token';
+const USER_KEY = 'spa_user';
 const apiUrl = getApiBase();
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -42,27 +42,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const verifyToken = useCallback(async (authToken: string) => {
-    try {
-      const res = await fetch(`${apiUrl}/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+  const verifyToken = useCallback(
+    async (authToken: string) => {
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
 
-      if (!res.ok) {
+        if (!res.ok) {
+          clearAuth();
+          return;
+        }
+
+        const userData = await res.json();
+        setUser(userData);
+        localStorage.setItem(USER_KEY, JSON.stringify(userData));
+      } catch (error) {
+        console.error('Token verification failed:', error);
         clearAuth();
-        return;
       }
-
-      const userData = await res.json();
-      setUser(userData);
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      clearAuth();
-    }
-  }, [clearAuth]);
+    },
+    [clearAuth],
+  );
 
   // Load auth state from localStorage on mount
   useEffect(() => {
@@ -78,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await verifyToken(storedToken);
         }
       } catch (error) {
-        console.error("Auth load error:", error);
+        console.error('Auth load error:', error);
         clearAuth();
       } finally {
         setIsLoading(false);
@@ -91,16 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
       });
 
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: "Login failed" }));
-        throw new Error(error.message || "Invalid credentials");
+        const error = await res.json().catch(() => ({ message: 'Login failed' }));
+        throw new Error(error.message || 'Invalid credentials');
       }
 
       const data = await res.json();
@@ -114,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!userRes.ok) {
-        throw new Error("Failed to fetch user data");
+        throw new Error('Failed to fetch user data');
       }
 
       const userData = await userRes.json();
@@ -127,21 +130,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Role-based redirect
       const roleRoutes: Record<UserRole, string> = {
-        admin: "/admin",
-        trainer: "/trainer",
-        student: "/student",
+        admin: '/admin',
+        trainer: '/trainer',
+        student: '/student',
       };
 
-      router.push(roleRoutes[userData.role as UserRole] || "/");
+      router.push(roleRoutes[userData.role as UserRole] || '/');
     } catch (error) {
-      console.error("Login error:", error);
+      console.error('Login error:', error);
       throw error;
     }
   };
 
   const logout = () => {
     clearAuth();
-    router.push("/auth/login");
+    router.push('/auth/login');
   };
 
   const refreshUser = async () => {
@@ -168,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
@@ -182,18 +185,18 @@ export function useRequireAuth(allowedRoles?: UserRole[]) {
     if (isLoading) return;
 
     if (!user) {
-      router.push("/auth/login");
+      router.push('/auth/login');
       return;
     }
 
     if (allowedRoles && !allowedRoles.includes(user.role as UserRole)) {
       // Redirect to user's proper dashboard
       const roleRoutes: Record<UserRole, string> = {
-        admin: "/admin",
-        trainer: "/trainer",
-        student: "/student",
+        admin: '/admin',
+        trainer: '/trainer',
+        student: '/student',
       };
-      router.push(roleRoutes[user.role as UserRole] || "/");
+      router.push(roleRoutes[user.role as UserRole] || '/');
     }
   }, [user, isLoading, allowedRoles, router]);
 

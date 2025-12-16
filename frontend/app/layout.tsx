@@ -37,7 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={manrope.className}>
-        <a href="#main" className="skip-link">Passer au contenu</a>
+        <a href="#main" className="skip-link">
+          Passer au contenu
+        </a>
         <ThemeProvider>
           <ErrorBoundary>
             <AuthProvider>
@@ -55,13 +57,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </AuthProvider>
           </ErrorBoundary>
         </ThemeProvider>
-        <script dangerouslySetInnerHTML={{ __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
               navigator.serviceWorker.register('/sw.js').catch(() => {});
             });
           }
-        ` }} />
+        `,
+          }}
+        />
       </body>
     </html>
   );

@@ -27,8 +27,9 @@ services:
     image: redis:7-alpine
     container_name: smartpresence_redis
     command: redis-server --appendonly yes
+    # Bind Redis to a non-conflicting host port; keep internal 6379
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:

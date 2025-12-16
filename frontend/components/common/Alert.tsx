@@ -16,21 +16,21 @@ const iconMap = {
   error: XCircle,
   success: CheckCircle,
   info: Info,
-  warning: AlertCircle
+  warning: AlertCircle,
 };
 
 const colorMap = {
   error: 'bg-red-50 text-red-700 border-red-200',
   success: 'bg-green-50 text-green-700 border-green-200',
   info: 'bg-blue-50 text-blue-700 border-blue-200',
-  warning: 'bg-yellow-50 text-yellow-700 border-yellow-200'
+  warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
 };
 
 const iconColorMap = {
   error: 'text-red-600',
   success: 'text-green-600',
   info: 'text-blue-600',
-  warning: 'text-yellow-600'
+  warning: 'text-yellow-600',
 };
 
 export default function Alert({ type, title, message, onDismiss, dismissible = true }: AlertProps) {

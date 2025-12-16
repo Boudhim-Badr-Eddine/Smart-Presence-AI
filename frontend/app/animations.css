@@ -45,13 +45,43 @@
 }
 
 /* Stagger delays */
-.delay-100 { animation-delay: 0.1s; opacity: 0; }
-.delay-200 { animation-delay: 0.2s; opacity: 0; }
-.delay-300 { animation-delay: 0.3s; opacity: 0; }
-.delay-400 { animation-delay: 0.4s; opacity: 0; }
-.delay-500 { animation-delay: 0.5s; opacity: 0; }
-.delay-600 { animation-delay: 0.6s; opacity: 0; }
-.delay-700 { animation-delay: 0.7s; opacity: 0; }
-.delay-800 { animation-delay: 0.8s; opacity: 0; }
-.delay-900 { animation-delay: 0.9s; opacity: 0; }
-.delay-1000 { animation-delay: 1.0s; opacity: 0; }
+.delay-100 {
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+.delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+.delay-300 {
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+.delay-400 {
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+.delay-500 {
+  animation-delay: 0.5s;
+  opacity: 0;
+}
+.delay-600 {
+  animation-delay: 0.6s;
+  opacity: 0;
+}
+.delay-700 {
+  animation-delay: 0.7s;
+  opacity: 0;
+}
+.delay-800 {
+  animation-delay: 0.8s;
+  opacity: 0;
+}
+.delay-900 {
+  animation-delay: 0.9s;
+  opacity: 0;
+}
+.delay-1000 {
+  animation-delay: 1s;
+  opacity: 0;
+}

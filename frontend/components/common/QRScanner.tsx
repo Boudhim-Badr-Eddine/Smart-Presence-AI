@@ -21,7 +21,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
     const startCamera = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
+          video: { facingMode: 'environment' },
         });
         const videoEl = videoRef.current;
         if (videoEl) {
@@ -36,7 +36,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
     return () => {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
@@ -47,16 +47,16 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
     const interval = setInterval(() => {
       if (videoEl && canvasEl && !scanned) {
         const ctx = canvasEl.getContext('2d');
-        
+
         if (ctx && videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
           canvasEl.width = videoEl.videoWidth;
           canvasEl.height = videoEl.videoHeight;
-          
+
           ctx.drawImage(videoEl, 0, 0);
-          
+
           const imageData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
           const code = jsQR(imageData.data, imageData.width, imageData.height);
-          
+
           if (code) {
             setScanned(true);
             onScan(code.data);
@@ -77,10 +77,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
             <Camera className="w-5 h-5" />
             QR Code Scanner
           </h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-dark-bg rounded"
-          >
+          <button onClick={onClose} className="p-1 hover:bg-dark-bg rounded">
             <X className="w-5 h-5 text-dark-muted" />
           </button>
         </div>
@@ -92,16 +89,8 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
         ) : (
           <>
             <div className="relative rounded-lg overflow-hidden bg-white/5 mb-4">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full"
-              />
-              <canvas
-                ref={canvasRef}
-                className="hidden"
-              />
+              <video ref={videoRef} autoPlay playsInline className="w-full" />
+              <canvas ref={canvasRef} className="hidden" />
               {scanned && (
                 <div className="absolute inset-0 bg-emerald-500/20 border-4 border-emerald-500 flex items-center justify-center">
                   <Check className="w-12 h-12 text-emerald-400" />

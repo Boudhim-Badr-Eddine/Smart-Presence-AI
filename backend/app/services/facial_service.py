@@ -1,9 +1,11 @@
 """Facial recognition service using InsightFace for enrollment & verification."""
-import numpy as np
-from typing import List, Tuple
-from insightface.app import FaceAnalysis  # type: ignore
+
 import base64
 import io
+from typing import List, Tuple
+
+import numpy as np
+from insightface.app import FaceAnalysis  # type: ignore
 from PIL import Image
 
 
@@ -11,7 +13,9 @@ class FacialService:
     """Handles face detection, encoding, and verification."""
 
     def __init__(self):
-        self.app = FaceAnalysis(providers=["CPUExecutionProvider"], allowed_modules=["detection", "recognition"])
+        self.app = FaceAnalysis(
+            providers=["CPUExecutionProvider"], allowed_modules=["detection", "recognition"]
+        )
         self.app.prepare(ctx_id=0, det_size=(640, 640))
 
     def encode_face(self, image_base64: str) -> np.ndarray | None:
@@ -35,7 +39,9 @@ class FacialService:
                 embeddings.append(emb)
         return embeddings
 
-    def verify_face(self, test_image_base64: str, stored_embedding: np.ndarray, threshold: float = 0.35) -> Tuple[bool, float]:
+    def verify_face(
+        self, test_image_base64: str, stored_embedding: np.ndarray, threshold: float = 0.35
+    ) -> Tuple[bool, float]:
         """Verify if test image matches stored embedding. Returns (verified, similarity_score)."""
         test_emb = self.encode_face(test_image_base64)
         if test_emb is None:
