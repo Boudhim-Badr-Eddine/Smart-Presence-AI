@@ -119,7 +119,7 @@ db.close()
 "
 ```
 
-**Login with:** `admin` / `Admin@123`
+**Login with:** `admin@smartpresence.com` / `Admin@123`
 
 ### 📚 Documentation
 
@@ -169,19 +169,12 @@ npm run dev
 
 ## 🔐 Default Credentials
 
-After creating the admin user (see Quick Start section), use:
-- Username: `admin`
-- Password: `Admin@123`
+If you ran `./scripts/create-admin.sh`, use the email/password you entered.
 
-**⚠️ IMPORTANT:** Change this password immediately after first login!
-
-**Trainer:**
-- Email: `dam.nachite@istanitic.ma`
-- Password: `password123`
-
-**Student:**
-- Email: `taha.elkhabazi@istanitic.ma`
-- Password: `password123`
+If you ran `./scripts/seed-demo.sh`, use these demo accounts:
+- **Admin**: `badr.eddine.boudhim@smartpresence.com` / `Luno.xar.95`
+- **Trainers**: `dam.nachit@smartpresence.com`, `yassin.madani@smartpresence.com`, `rachid.aitaamou@smartpresence.com` / `Trainer.123`
+- **Students**: `taha.khebazi@smartpresence.com`, `walid.eltahiri@smartpresence.com`, `sara.aitaamou@smartpresence.com`, `karim.bennani@smartpresence.com`, `amine.elalami@smartpresence.com` / `Student.123`
 
 ## 📊 Project Structure
 

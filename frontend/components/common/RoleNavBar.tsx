@@ -8,6 +8,7 @@ import { LogOut, Home, Users, UserCheck, GraduationCap, Menu, X, Bot } from 'luc
 import ThemeToggle from './ThemeToggle';
 import UserProfileMenu from './UserProfileMenu';
 import { NotificationBell } from '../NotificationBell';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function RoleNavBar() {
   const { user, logout } = useAuth();
@@ -71,7 +72,8 @@ export default function RoleNavBar() {
         {/* Desktop Actions */}
         <div className="hidden items-center gap-3 md:flex">
           <NotificationBell />
-          <ThemeToggle />
+            <LanguageSwitcher />
+            <ThemeToggle />
           <UserProfileMenu />
         </div>
 
@@ -82,7 +84,6 @@ export default function RoleNavBar() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-600 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white light:text-gray-600 light:hover:bg-gray-100 light:hover:text-gray-900"
             aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? (
               <X className="h-6 w-6" aria-hidden="true" />
@@ -165,7 +166,6 @@ export default function RoleNavBar() {
       {mobileMenuOpen && (
         <div
           className="border-t border-zinc-800 dark:border-zinc-800 light:border-gray-200 md:hidden"
-          role="menu"
         >
           <div className="space-y-1 px-4 py-3">
             {availableLinks.map((link) => {

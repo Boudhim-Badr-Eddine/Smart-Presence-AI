@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Check, X, Upload, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { apiClient } from '@/lib/api-client';
 
 interface FacialRecognitionProps {
   userId: number;
@@ -71,33 +72,38 @@ export default function FacialRecognition({
         canvasRef.current.height = videoRef.current.videoHeight;
         context.drawImage(videoRef.current, 0, 0);
         const photoData = canvasRef.current.toDataURL('image/jpeg');
-        setPhotos((prev) => [...prev, photoData]);
 
-        if (mode === 'enroll' && photos.length + 1 >= photosRequired) {
-          setTimeout(() => {
-            enrollFace();
-          }, 500);
-        }
+        setPhotos((prev) => {
+          const next = [...prev, photoData];
+          if (mode === 'enroll' && next.length >= photosRequired) {
+            setTimeout(() => {
+              void enrollFace(next);
+            }, 500);
+          }
+          return next;
+        });
       }
     }
   };
 
-  const enrollFace = async () => {
+  const enrollFace = async (images?: string[]) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Simulate face encoding and storage
-      // In a real app, this would send photos to a face recognition API
-      // and store embeddings in pgvector
-      const formData = new FormData();
-      photos.forEach((photo, index) => {
-        formData.append(`face_${index}`, photo);
-      });
-      formData.append('user_id', userId.toString());
+      const imagesBase64 = images ?? photos;
+      if (!imagesBase64.length) {
+        setError('Aucune photo capturée');
+        return;
+      }
 
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await apiClient('/api/facial/enroll', {
+        method: 'POST',
+        data: {
+          student_id: userId,
+          images_base64: imagesBase64,
+        },
+      });
 
       setSuccess(true);
       setPhotos([]);
@@ -106,7 +112,8 @@ export default function FacialRecognition({
         onComplete(true, 'Inscription faciale réussie!');
       }
     } catch (err) {
-      setError("Erreur lors de l'inscription faciale");
+      const detail = (err as any)?.response?.data?.detail as string | undefined;
+      setError(detail || "Erreur lors de l'inscription faciale");
       console.error('Enroll error:', err);
       if (onComplete) {
         onComplete(false, "Erreur lors de l'inscription");
@@ -126,17 +133,21 @@ export default function FacialRecognition({
         return;
       }
 
-      // Simulate face verification
-      // In a real app, this would:
-      // 1. Extract face embedding from the photo
-      // 2. Compare against pgvector embeddings in the database
-      // 3. Return similarity score
-      const formData = new FormData();
-      formData.append('face', photos[0]);
-      formData.append('user_id', userId.toString());
+      const result = await apiClient<{ verified: boolean; confidence: number }>('/api/facial/verify', {
+        method: 'POST',
+        data: {
+          student_id: userId,
+          image_base64: photos[0],
+        },
+      });
 
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (!result?.verified) {
+        setError(`Reconnaissance faciale échouée (confiance ${Math.round((result?.confidence || 0) * 100)}%)`);
+        if (onComplete) {
+          onComplete(false, 'Reconnaissance faciale échouée');
+        }
+        return;
+      }
 
       setSuccess(true);
       setPhotos([]);
@@ -145,7 +156,8 @@ export default function FacialRecognition({
         onComplete(true, 'Reconnaissance faciale réussie!');
       }
     } catch (err) {
-      setError('Erreur lors de la vérification faciale');
+      const detail = (err as any)?.response?.data?.detail as string | undefined;
+      setError(detail || 'Erreur lors de la vérification faciale');
       console.error('Verify error:', err);
       if (onComplete) {
         onComplete(false, 'Reconnaissance faciale échouée');
@@ -232,6 +244,9 @@ export default function FacialRecognition({
                 />
                 <button
                   onClick={() => removePhoto(index)}
+                  type="button"
+                  aria-label={`Supprimer la photo ${index + 1}`}
+                  title={`Supprimer la photo ${index + 1}`}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 hover:opacity-100 transition"
                 >
                   <X size={14} />

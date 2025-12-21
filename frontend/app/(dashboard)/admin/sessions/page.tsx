@@ -1,8 +1,11 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import RoleGuard from '@/components/auth/RoleGuard';
 import nextDynamic from 'next/dynamic';
+import ConfirmedSessionsPanel from '@/components/ConfirmedSessionsPanel';
 import { ColumnDef } from '@tanstack/react-table';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Edit2, Trash2, Download } from 'lucide-react';
@@ -36,9 +39,11 @@ type Session = {
   id: number;
   title: string;
   date: string;
-  time: string;
   class_name: string;
-  trainer_name: string;
+  start_time: string;
+  end_time: string;
+  trainer_id?: number;
+  trainer_name?: string;
 };
 
 export default function AdminSessionsPage() {
@@ -46,16 +51,22 @@ export default function AdminSessionsPage() {
   const [search, setSearch] = useState('');
   const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const apiBase = getApiBase();
-  const authHeaders = useMemo(() => {
-    if (typeof window === 'undefined') return {};
-    const token = localStorage.getItem('spa_access_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setAccessToken(localStorage.getItem('spa_access_token'));
   }, []);
+
+  const authHeaders = useMemo(() => {
+    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  }, [accessToken]);
 
   const updateCachedLists = (updater: (items: Session[]) => Session[]) => {
     const queries = queryClient.getQueriesData<{ items: Session[]; total_pages: number }>({
@@ -70,13 +81,15 @@ export default function AdminSessionsPage() {
     });
   };
 
-  const sessionsQuery = useApiQuery<{ items: Session[]; total_pages: number }>(
-    ['admin-sessions', String(page), search, JSON.stringify(dateRange)],
-    `/api/admin/sessions?page=${page + 1}&page_size=10&search=${encodeURIComponent(search)}${dateRange.from ? `&from=${encodeURIComponent(dateRange.from)}` : ''}${dateRange.to ? `&to=${encodeURIComponent(dateRange.to)}` : ''}`,
-    { method: 'GET', headers: authHeaders },
+  const sessionsQuery = useQuery(
+    useApiQuery<{ items: Session[]; total_pages: number }>(
+      ['admin-sessions', String(page), search, JSON.stringify(dateRange)],
+      `/api/admin/sessions?page=${page + 1}&page_size=10&search=${encodeURIComponent(search)}${dateRange.from ? `&from=${encodeURIComponent(dateRange.from)}` : ''}${dateRange.to ? `&to=${encodeURIComponent(dateRange.to)}` : ''}`,
+      { method: 'GET', headers: authHeaders, useCache: false, enabled: !!accessToken },
+    ),
   );
 
-  const { data, isLoading } = sessionsQuery as any;
+  const { data, isLoading, error } = sessionsQuery;
 
   // Hydrate filters from URL on mount
   useEffect(() => {
@@ -105,15 +118,23 @@ export default function AdminSessionsPage() {
     mutationFn: (newSession: any) =>
       axios.post(`${apiBase}/api/admin/sessions`, newSession, { headers: authHeaders }),
     onMutate: async (newSession) => {
+      setCreateError(null);
       await queryClient.cancelQueries({ queryKey: ['admin-sessions'] });
+
+      const start = newSession.start_time ?? newSession.startTime ?? '';
+      const end = newSession.end_time ?? newSession.endTime ?? '';
+      const className = newSession.class_name ?? newSession.className ?? '';
+      const trainerName = newSession.trainer_name ?? newSession.trainerName;
+
       updateCachedLists((items) => [
         {
           id: Date.now(),
           title: newSession.title,
           date: newSession.date,
-          time: newSession.time,
-          class_name: newSession.class_name,
-          trainer_name: newSession.trainer_name,
+          class_name: className,
+          start_time: start,
+          end_time: end,
+          trainer_name: trainerName,
         },
         ...items,
       ]);
@@ -121,6 +142,11 @@ export default function AdminSessionsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
       setIsModalOpen(false);
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.message || "Échec de création de la session";
+      setCreateError(String(msg));
+      queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
     },
   });
 
@@ -162,9 +188,9 @@ export default function AdminSessionsPage() {
       ...(data?.items.map((s: Session) => [
         s.title,
         s.date,
-        s.time,
+        `${s.start_time ?? ''} - ${s.end_time ?? ''}`,
         s.class_name,
-        s.trainer_name,
+        s.trainer_name ?? '',
       ]) ?? []),
     ];
     exportCSV(rows, 'sessions');
@@ -174,7 +200,12 @@ export default function AdminSessionsPage() {
   const columns: ColumnDef<any>[] = [
     { header: 'Titre', accessorKey: 'title' },
     { header: 'Date', accessorKey: 'date' },
-    { header: 'Heure', accessorKey: 'time' },
+    {
+      header: 'Heure',
+      cell: ({ row }) => (
+        <span>{`${row.original.start_time ?? ''} - ${row.original.end_time ?? ''}`}</span>
+      ),
+    },
     { header: 'Classe', accessorKey: 'class_name' },
     { header: 'Formateur', accessorKey: 'trainer_name' },
     {
@@ -210,6 +241,16 @@ export default function AdminSessionsPage() {
           </p>
         </div>
         <div className="mb-4 space-y-2">
+          {createError ? (
+            <div className="rounded-lg border border-red-500/20 bg-red-950/20 px-3 py-2 text-sm text-red-200">
+              {createError}
+            </div>
+          ) : null}
+          {error ? (
+            <div className="rounded-lg border border-red-500/20 bg-red-950/20 px-3 py-2 text-sm text-red-200">
+              {(error as any)?.response?.data?.detail || (error as any)?.message || 'Erreur de chargement des sessions'}
+            </div>
+          ) : null}
           <div className="flex items-center gap-2">
             <input
               value={search}
@@ -224,12 +265,16 @@ export default function AdminSessionsPage() {
               type="date"
               value={dateRange.from ?? ''}
               onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+              aria-label="Date début"
+              title="Date début"
               className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
             <input
               type="date"
               value={dateRange.to ?? ''}
               onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+              aria-label="Date fin"
+              title="Date fin"
               className="rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
             <AdvancedFilters
@@ -286,6 +331,16 @@ export default function AdminSessionsPage() {
               Export CSV
             </button>
           </div>
+        </div>
+
+        {/* Confirmed Sessions Panel */}
+        <div className="mb-8 mt-8">
+          <ConfirmedSessionsPanel />
+        </div>
+
+        {/* Sessions Table */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Toutes les sessions</h2>
         </div>
         <DataTable
           data={data?.items ?? []}

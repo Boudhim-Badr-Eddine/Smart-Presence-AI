@@ -15,7 +15,20 @@ class AttendanceService:
     def mark_attendance(
         db: Session, session_id: int, student_id: int, payload: AttendanceCreate
     ) -> AttendanceRecord:
-        """Mark attendance for a student in a session."""
+        """Mark attendance for a student in a session.
+        
+        Args:
+            db: Database session
+            session_id: Session ID
+            student_id: Student ID
+            payload: Attendance creation payload
+            
+        Returns:
+            AttendanceRecord: Created or existing attendance record
+            
+        Note:
+            If attendance already exists for this session/student, returns existing record.
+        """
         # Check if already marked
         existing = (
             db.query(AttendanceRecord)
@@ -52,7 +65,16 @@ class AttendanceService:
     def update_attendance(
         db: Session, attendance_id: int, payload: AttendanceUpdate
     ) -> AttendanceRecord:
-        """Update existing attendance record (trainer/admin only)."""
+        """Update existing attendance record (trainer/admin only).
+        
+        Args:
+            db: Database session
+            attendance_id: Attendance record ID
+            payload: Update payload with partial fields
+            
+        Returns:
+            AttendanceRecord | None: Updated record or None if not found
+        """
         record = db.query(AttendanceRecord).filter(AttendanceRecord.id == attendance_id).first()
         if not record:
             return None
@@ -66,7 +88,17 @@ class AttendanceService:
 
     @staticmethod
     def get_student_attendance_summary(db: Session, student_id: int, days: int = 30):
-        """Get attendance summary for a student."""
+        """Get attendance summary for a student.
+        
+        Args:
+            db: Database session
+            student_id: Student ID
+            days: Number of days to look back (default: 30)
+            
+        Returns:
+            dict: Summary with total_sessions, present, absent, late, excused counts,
+                  attendance_rate (%), and period_days
+        """
         cutoff_date = datetime.now() - timedelta(days=days)
 
         records = (

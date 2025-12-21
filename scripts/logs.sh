@@ -14,6 +14,16 @@ NC='\033[0m'
 
 cd "$(dirname "$0")/.."
 
+# Detect docker compose (v2) or docker-compose (v1)
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+else
+    echo "Docker Compose not installed" >&2
+    exit 1
+fi
+
 echo -e "${BLUE}📋 SmartPresence Logs${NC}"
 echo ""
 
@@ -22,9 +32,9 @@ SERVICE="${1:-}"
 if [ -z "$SERVICE" ]; then
     echo -e "${YELLOW}Showing logs for all services (Ctrl+C to exit)${NC}"
     echo ""
-    docker-compose logs -f
+    "${COMPOSE_CMD[@]}" logs -f
 else
     echo -e "${YELLOW}Showing logs for: $SERVICE (Ctrl+C to exit)${NC}"
     echo ""
-    docker-compose logs -f "$SERVICE"
+    "${COMPOSE_CMD[@]}" logs -f "$SERVICE"
 fi

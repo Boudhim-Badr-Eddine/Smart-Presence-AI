@@ -87,6 +87,18 @@ class RedisCache:
             for k in self._client.scan_iter(pattern):
                 self._client.delete(k)
 
+    def incr(self, key: str, ttl: int) -> int:
+        """Increment a counter and ensure it expires.
+
+        Returns the incremented value. If Redis is unavailable, returns 0.
+        """
+        if not self._client:
+            return 0
+        val = int(self._client.incr(key))
+        if val == 1:
+            # Set expiry only on first creation
+            self._client.expire(key, ttl)
+        return val
 
 _redis_url = os.getenv("REDIS_URL")
 redis_cache = RedisCache(_redis_url, default_ttl=300) if _redis_url else None

@@ -1,9 +1,8 @@
 """Smart Alerts Service - Pattern-based alerts for attendance issues."""
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.attendance import AttendanceRecord
@@ -62,7 +61,7 @@ class SmartAlertsService:
                 session_id=session_id,
                 alert_type="sudden_absence",
                 severity="medium",
-                title=f"Étudiant avec bonne assiduité absent",
+                title="Étudiant avec bonne assiduité absent",
                 message=f"{student.first_name} {student.last_name} (assiduité: {attendance_rate:.0f}%) est absent aujourd'hui",
                 details={"attendance_rate": attendance_rate, "recent_sessions": total_sessions},
                 notify_trainer=True,
@@ -126,7 +125,7 @@ class SmartAlertsService:
                 student_id=student_id,
                 alert_type="consecutive_absences",
                 severity="high",
-                title=f"Absences consécutives détectées",
+                title="Absences consécutives détectées",
                 message=f"{student.first_name} {student.last_name} est absent pour {consecutive_absences} cours consécutifs",
                 details={"consecutive_count": consecutive_absences},
                 notify_trainer=True,

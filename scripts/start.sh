@@ -85,7 +85,7 @@ check_port_available 6380 "Redis" || PORTS_CONFLICT=1
 
 if [ $PORTS_CONFLICT -eq 1 ]; then
   log_warning "Some ports are already in use"
-  log_info "Try: docker compose down && docker system prune -af"
+  log_info "Try: ./scripts/stop.sh (or ./scripts/reset-docker.sh if you need a clean reset)"
   read -p "Continue anyway? (y/N) " -n 1 -r
   echo
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -146,4 +146,6 @@ echo "   ./scripts/status.sh   - Check service health"
 echo "   ./scripts/logs.sh     - View service logs"
 echo "   ./scripts/shell.sh    - Open service shells"
 echo "   ./scripts/stop.sh     - Stop all services"
+echo "   ./scripts/rebuild.sh  - Rebuild images (when needed)"
+echo "   ./scripts/reset-docker.sh - Free space / clean reset"
 echo ""

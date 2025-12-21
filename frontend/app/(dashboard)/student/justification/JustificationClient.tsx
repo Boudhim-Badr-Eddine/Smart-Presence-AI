@@ -2,11 +2,8 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Upload, X, CheckCircle } from 'lucide-react';
-import { getApiBase } from '@/lib/config';
-
-const apiBase = getApiBase();
+import { apiClient } from '@/lib/api-client';
 
 type Absence = {
   id: number;
@@ -24,13 +21,7 @@ export default function JustificationClient() {
   const { data: absences = [] } = useQuery({
     queryKey: ['student-absences'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/absences`).catch(() => ({
-        data: [
-          { id: 1, date: '2025-01-11', subject: 'Database', justified: false },
-          { id: 2, date: '2025-01-09', subject: 'Security', justified: false },
-        ],
-      }));
-      return res.data as Absence[];
+      return apiClient<Absence[]>('/api/student/absences', { method: 'GET', useCache: false });
     },
   });
 
@@ -41,9 +32,7 @@ export default function JustificationClient() {
       formData.append('reason', data.reason);
       if (data.file) formData.append('file', data.file);
 
-      return axios.post(`${apiBase}/api/student/justifications`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      return apiClient('/api/student/justifications', { method: 'POST', data: formData });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['student-absences'] });
@@ -140,6 +129,7 @@ export default function JustificationClient() {
                     <button
                       type="button"
                       onClick={() => setFile(null)}
+                      aria-label="Supprimer le fichier"
                       className="text-red-400 hover:text-red-300"
                     >
                       <X className="h-4 w-4" />

@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { AlertCircle, CheckCircle2, Info, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +9,10 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
   description?: string;
 }
+
+export interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+
+export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
 const variantStyles = {
   default: {
@@ -51,22 +56,48 @@ export function Alert({
   const styles = variantStyles[variant];
   const Icon = styles.Icon;
 
+  const hasAutoContent = Boolean(title || description);
+
   return (
     <div
       role="alert"
       className={cn('relative w-full rounded-lg border p-4', styles.container, className)}
       {...props}
     >
-      <div className="flex gap-3">
-        <Icon className={cn('h-5 w-5 flex-shrink-0', styles.icon)} />
-        <div className="flex-1 space-y-1">
-          {title && (
-            <h5 className={cn('font-medium leading-none tracking-tight', styles.title)}>{title}</h5>
-          )}
-          {description && <div className={cn('text-sm', styles.description)}>{description}</div>}
-          {children && <div className={cn('text-sm', styles.description)}>{children}</div>}
+      {hasAutoContent ? (
+        <div className="flex gap-3">
+          <Icon className={cn('h-5 w-5 flex-shrink-0', styles.icon)} />
+          <div className="flex-1 space-y-1">
+            {title && (
+              <AlertTitle className={cn('font-medium leading-none tracking-tight', styles.title)}>
+                {title}
+              </AlertTitle>
+            )}
+            {description && (
+              <AlertDescription className={cn('text-sm', styles.description)}>
+                {description}
+              </AlertDescription>
+            )}
+            {children}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex gap-3">{children}</div>
+      )}
     </div>
   );
 }
+
+export const AlertTitle = React.forwardRef<HTMLHeadingElement, AlertTitleProps>(
+  ({ className, ...props }, ref) => (
+    <h5 ref={ref} className={cn('mb-1 font-medium leading-none tracking-tight', className)} {...props} />
+  ),
+);
+AlertTitle.displayName = 'AlertTitle';
+
+export const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
+  ({ className, ...props }, ref) => (
+    <p ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+  ),
+);
+AlertDescription.displayName = 'AlertDescription';

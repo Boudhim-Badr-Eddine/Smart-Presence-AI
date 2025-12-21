@@ -19,6 +19,7 @@ import {
 import { Alert } from '@/components/ui/alert';
 import { LoadingButton } from '@/components/ui/spinner';
 import { getApiBase, isApiConfigured } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
 interface UserFormData {
   firstName: string;
@@ -116,20 +117,13 @@ export default function AdminUsersPage() {
         imagesBase64: faceImages,
       };
 
-      const res = await fetch(`${apiBase}/api/admin/users`, {
+      await apiClient('/api/admin/users', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        data: payload,
       });
-
-      if (!res.ok) {
-        const statusText = `${res.status} ${res.statusText}`;
-        const error = await res.json().catch(() => ({ message: statusText }));
-        throw new Error(error.message || statusText || 'Échec de création');
-      }
 
       setMessage({ type: 'success', text: 'Utilisateur créé avec succès!' });
       setFormData({
@@ -144,7 +138,9 @@ export default function AdminUsersPage() {
 
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Erreur lors de la création' });
+      const detail = error?.response?.data?.detail;
+      const message = detail || error?.message || 'Erreur lors de la création';
+      setMessage({ type: 'error', text: String(message) });
     } finally {
       setSaving(false);
     }
@@ -431,12 +427,11 @@ export default function AdminUsersPage() {
                 <p className="text-xs text-white/60 mb-2">
                   Capturez 3 angles: gauche, face, droite
                 </p>
-                <div className="w-full bg-white/10 rounded-lg h-2">
-                  <div
-                    className="bg-amber-500 h-2 rounded-lg transition-all"
-                    style={{ width: `${(faceImages.length / 3) * 100}%` }}
-                  />
-                </div>
+                <progress
+                  className="w-full h-2 rounded-lg accent-amber-500"
+                  value={faceImages.length}
+                  max={3}
+                />
               </div>
 
               {!showWebcam && faceImages.length === 0 && (

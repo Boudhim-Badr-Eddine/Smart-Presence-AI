@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Camera, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { apiClient } from '@/lib/api-client';
 
 interface SelfCheckinModalProps {
   isOpen: boolean;
@@ -60,38 +61,8 @@ export default function SelfCheckinModal({
     }
   }, []);
 
-  // Request location
-  const requestLocation = useCallback(async () => {
-    setIsLoadingLocation(true);
-    setLocationError(null);
-
-    if (!navigator.geolocation) {
-      setLocationError('La géolocalisation n\'est pas disponible.');
-      setIsLoadingLocation(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude);
-        setLongitude(position.coords.longitude);
-        setStep('submitting');
-        setIsLoadingLocation(false);
-      },
-      (error) => {
-        setLocationError(`Erreur de géolocalisation: ${error.message}`);
-        setIsLoadingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-  }, []);
-
   // Capture photo and submit
-  const submitCheckin = useCallback(async () => {
+  const submitCheckin = useCallback(async (lat?: number | null, lng?: number | null) => {
     if (!videoRef.current || !canvasRef.current) {
       setError('Erreur: impossible d\'accéder à la caméra.');
       setStep('error');
@@ -119,21 +90,18 @@ export default function SelfCheckinModal({
         try {
           const formData = new FormData();
           formData.append('photo', blob, 'checkin.jpg');
-          if (latitude !== null) formData.append('latitude', latitude.toString());
-          if (longitude !== null) formData.append('longitude', longitude.toString());
-          formData.append('session_id', sessionId.toString());
+          const finalLat = lat ?? latitude;
+          const finalLng = lng ?? longitude;
+          if (finalLat !== null && finalLat !== undefined) formData.append('latitude', finalLat.toString());
+          if (finalLng !== null && finalLng !== undefined) formData.append('longitude', finalLng.toString());
 
-          const response = await fetch('/api/smart-attendance/self-checkin', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Erreur lors de l\'enregistrement');
-          }
-
-          const data = await response.json();
+          const data = await apiClient(
+            `/api/smart-attendance/self-checkin?session_id=${encodeURIComponent(sessionId.toString())}`,
+            {
+              method: 'POST',
+              data: formData,
+            },
+          );
           setResult(data);
           setStep('success');
 
@@ -143,7 +111,8 @@ export default function SelfCheckinModal({
             onClose();
           }, 2000);
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Erreur d\'enregistrement');
+          const detail = (err as any)?.response?.data?.detail as string | undefined;
+          setError(detail || (err instanceof Error ? err.message : 'Erreur d\'enregistrement'));
           setStep('error');
         }
       }, 'image/jpeg');
@@ -152,6 +121,41 @@ export default function SelfCheckinModal({
       setStep('error');
     }
   }, [sessionId, latitude, longitude, onSuccess, onClose]);
+
+  // Request location
+  const requestLocation = useCallback(async () => {
+    setIsLoadingLocation(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError('La géolocalisation n\'est pas disponible.');
+      setIsLoadingLocation(false);
+      setStep('submitting');
+      void submitCheckin();
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lng);
+        setStep('submitting');
+        setIsLoadingLocation(false);
+        void submitCheckin(lat, lng);
+      },
+      (error) => {
+        setLocationError(`Erreur de géolocalisation: ${error.message}`);
+        setIsLoadingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  }, [submitCheckin]);
 
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {

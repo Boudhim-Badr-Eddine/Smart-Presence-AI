@@ -37,15 +37,15 @@ if ! "${COMPOSE_CMD[@]}" ps | grep -q backend; then
 fi
 
 # Run seed script inside backend
-SEED_CMD=(python -m app.scripts.seed_demo)
+SEED_CMD=(python -m app.scripts.seed_mini)
 if ! "${COMPOSE_CMD[@]}" exec -e FACE_STORAGE_DIR="/app/storage/faces" backend "${SEED_CMD[@]}"; then
   log_error "Seeding failed"
   exit 1
 fi
 
 log_success "Demo data seeded successfully"
-echo "- Trainers: dam nachit, yassin madani, rachid aitaamou"
-echo "- Students: DEV101/DEV102 sample group"
+echo "- Admin: badr.eddine.boudhim@smartpresence.com (password: Luno.xar.95)"
+echo "- Trainers: dam.nachit, yassin.madani, rachid.aitaamou (password: Trainer.123)"
+echo "- Students: taha.khebazi, walid.eltahiri, sara.aitaamou, karim.bennani, amine.elalami (password: Student.123)"
 echo "- Sessions & attendance: created"
 echo "- Notifications: welcome messages"
-echo "- Faces: placeholder images enrolled for first student"

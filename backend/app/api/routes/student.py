@@ -1,14 +1,17 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.attendance import AttendanceRecord
+from app.models.feedback import StudentFeedback
 from app.models.session import Session as SessionModel
 from app.models.student import Student
 from app.models.user import User
+from app.services.attendance import AttendanceService
 from app.utils.deps import get_current_user, get_db
 
 router = APIRouter(tags=["student"])
@@ -42,11 +45,39 @@ def get_student_stats(
         .count()
     )
 
+    justified_absences = (
+        db.query(AttendanceRecord)
+        .filter(
+            AttendanceRecord.student_id == student.id,
+            AttendanceRecord.status == "absent",
+            AttendanceRecord.justification.isnot(None),
+        )
+        .count()
+    )
+
+    next_session = (
+        db.query(SessionModel)
+        .filter(
+            SessionModel.class_name == getattr(student, "class_name"),
+            SessionModel.session_date >= datetime.now().date(),
+        )
+        .order_by(SessionModel.session_date, SessionModel.start_time)
+        .first()
+    )
+
     return {
         "attendance_rate": student.attendance_rate or 0,
         "total_sessions": total_sessions,
+        "total_classes": total_sessions,
         "present_count": present_count,
         "absent_count": absent_count,
+        "absences": absent_count,
+        "justified_absences": justified_absences,
+        "next_session": (
+            f"{next_session.session_date.isoformat()} {str(next_session.start_time) if next_session.start_time else ''}".strip()
+            if next_session and next_session.session_date
+            else None
+        ),
         "alert_level": student.alert_level or "none",
     }
 
@@ -66,7 +97,8 @@ def get_student_attendance(
         raise HTTPException(status_code=404, detail="Student profile not found")
 
     records = (
-        db.query(AttendanceRecord)
+        db.query(AttendanceRecord, SessionModel)
+        .join(SessionModel, SessionModel.id == AttendanceRecord.session_id)
         .filter(AttendanceRecord.student_id == student.id)
         .order_by(AttendanceRecord.marked_at.desc())
         .limit(limit)
@@ -77,12 +109,15 @@ def get_student_attendance(
         {
             "id": r.id,
             "session_id": r.session_id,
+            "date": s.session_date.isoformat() if s.session_date else "",
+            "subject": (s.title or s.topic or "Session"),
             "status": r.status,
             "marked_at": r.marked_at.isoformat() if r.marked_at else None,
             "late_minutes": r.late_minutes or 0,
             "justification": r.justification,
+            "justified": bool(r.justification),
         }
-        for r in records
+        for (r, s) in records
     ]
 
 
@@ -100,24 +135,32 @@ def get_upcoming_sessions(
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    # Get sessions matching student's class
     sessions = (
         db.query(SessionModel)
         .filter(
             SessionModel.session_date >= datetime.now().date(),
+            SessionModel.class_name == getattr(student, "class_name"),
         )
         .order_by(SessionModel.session_date, SessionModel.start_time)
         .limit(limit)
         .all()
     )
 
+    trainer_ids = {getattr(s, "trainer_id", None) for s in sessions}
+    trainer_ids.discard(None)
+    trainer_map = {}
+    if trainer_ids:
+        rows = db.query(User.id, User.username).filter(User.id.in_(trainer_ids)).all()
+        trainer_map = {r[0]: r[1] for r in rows}
+
     return [
         {
             "id": s.id,
-            "title": s.topic or "Session",
+            "subject": (s.title or s.topic or "Session"),
             "date": s.session_date.isoformat() if s.session_date else "",
             "time": str(s.start_time) if s.start_time else "",
-            "room": getattr(s, "classroom_id", ""),
+            "classroom": str(getattr(s, "classroom_id", "")),
+            "trainer_name": trainer_map.get(getattr(s, "trainer_id", None)),
         }
         for s in sessions
     ]
@@ -145,19 +188,30 @@ def get_student_schedule(
         .filter(
             SessionModel.session_date >= start_of_week.date(),
             SessionModel.session_date < end_of_week.date(),
+            SessionModel.class_name == getattr(student, "class_name"),
         )
         .order_by(SessionModel.session_date, SessionModel.start_time)
         .all()
     )
 
+    trainer_ids = {getattr(s, "trainer_id", None) for s in sessions}
+    trainer_ids.discard(None)
+    trainer_map = {}
+    if trainer_ids:
+        rows = db.query(User.id, User.username).filter(User.id.in_(trainer_ids)).all()
+        trainer_map = {r[0]: r[1] for r in rows}
+
     return [
         {
             "id": s.id,
-            "title": s.topic or "Session",
+            "subject": (s.title or s.topic or "Session"),
+            "trainer": trainer_map.get(getattr(s, "trainer_id", None)),
+            "classroom": str(getattr(s, "classroom_id", "")),
             "date": s.session_date.isoformat() if s.session_date else "",
             "start_time": str(s.start_time) if s.start_time else "",
             "end_time": str(s.end_time) if s.end_time else "",
             "day": s.session_date.strftime("%A") if s.session_date else "",
+            "day_of_week": int(s.session_date.isoweekday()) if s.session_date else None,
         }
         for s in sessions
     ]
@@ -198,8 +252,8 @@ def get_student_justifications(
 
 
 @router.post("/justifications")
-def submit_justification(
-    payload: Dict,
+async def submit_justification(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -211,8 +265,20 @@ def submit_justification(
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    attendance_id = payload.get("absence_id") or payload.get("attendance_id")
-    justification = payload.get("justification", "")
+    content_type = (request.headers.get("content-type") or "").lower()
+    attendance_id = None
+    justification = ""
+    uploaded_file = None
+
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        attendance_id = form.get("absence_id") or form.get("attendance_id")
+        justification = (form.get("reason") or form.get("justification") or "").strip()
+        uploaded_file = form.get("file")
+    else:
+        payload = await request.json()
+        attendance_id = payload.get("absence_id") or payload.get("attendance_id")
+        justification = (payload.get("justification") or payload.get("reason") or "").strip()
 
     if not attendance_id:
         raise HTTPException(status_code=400, detail="Missing attendance_id or absence_id")
@@ -226,8 +292,21 @@ def submit_justification(
     if not record:
         raise HTTPException(status_code=404, detail="Attendance record not found")
 
-    record.justification = justification
-    db.commit()
+    documents_path = None
+    if uploaded_file is not None and hasattr(uploaded_file, "filename"):
+        storage_dir = Path("/app/storage/justifications")
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        suffix = Path(str(uploaded_file.filename)).suffix
+        safe_name = f"{student.id}_{record.id}_{uuid4().hex}{suffix}"
+        file_path = storage_dir / safe_name
+        with open(file_path, "wb") as f:
+            content = await uploaded_file.read()
+            f.write(content)
+        documents_path = str(file_path)
+
+    saved = AttendanceService.justify_absence(db, record.id, justification, documents_path)
+    if not saved:
+        raise HTTPException(status_code=400, detail="Failed to save justification")
     return {"status": "success", "id": record.id}
 
 
@@ -245,9 +324,11 @@ def get_student_absences(
         return []
 
     absences = (
-        db.query(AttendanceRecord)
+        db.query(AttendanceRecord, SessionModel)
+        .join(SessionModel, SessionModel.id == AttendanceRecord.session_id)
         .filter(AttendanceRecord.student_id == student.id, AttendanceRecord.status == "absent")
         .order_by(AttendanceRecord.marked_at.desc())
+        .limit(200)
         .all()
     )
 
@@ -255,11 +336,13 @@ def get_student_absences(
         {
             "id": r.id,
             "session_id": r.session_id,
-            "date": r.marked_at.isoformat() if r.marked_at else None,
+            "date": (session.session_date.isoformat() if session.session_date else ""),
+            "subject": (session.title or session.topic or "Session"),
             "justification": r.justification,
             "hasJustification": bool(r.justification),
+            "justified": bool(r.justification),
         }
-        for r in absences
+        for r, session in absences
     ]
 
 
@@ -269,11 +352,8 @@ def get_student_feedback(
     current_user: User = Depends(get_current_user),
 ):
     """Get feedback submitted by the student."""
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Only students can access feedback")
-
-    # Placeholder - implement feedback model if needed
-    return []
+    # Backward-compatible alias for newer /feedbacks endpoint
+    return get_feedbacks(db=db, current_user=current_user)
 
 
 @router.post("/feedback")
@@ -283,11 +363,8 @@ def submit_feedback(
     current_user: User = Depends(get_current_user),
 ):
     """Submit feedback."""
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Only students can submit feedback")
-
-    # Placeholder - implement feedback model
-    return {"status": "success", "message": "Feedback submitted"}
+    # Backward-compatible alias for newer /feedbacks endpoint
+    return create_feedback(payload=payload, db=db, current_user=current_user)
 
 
 @router.get("/feedbacks")
@@ -299,7 +376,29 @@ def get_feedbacks(
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Only students can access feedbacks")
 
-    return []
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        return []
+
+    rows = (
+        db.query(StudentFeedback)
+        .filter(StudentFeedback.student_id == student.id)
+        .order_by(StudentFeedback.created_at.desc())
+        .limit(100)
+        .all()
+    )
+
+    return [
+        {
+            "id": f.id,
+            "subject": f.subject,
+            "message": f.message,
+            "status": f.status,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+            "response": f.response,
+        }
+        for f in rows
+    ]
 
 
 @router.post("/feedbacks")
@@ -312,11 +411,26 @@ def create_feedback(
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Only students can create feedbacks")
 
-    return {"status": "success", "id": 1}
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    subject = (payload.get("subject") or "").strip()
+    message = (payload.get("message") or "").strip()
+    if not subject or not message:
+        raise HTTPException(status_code=400, detail="Missing subject or message")
+
+    fb = StudentFeedback(student_id=student.id, subject=subject, message=message)
+    db.add(fb)
+    db.commit()
+    db.refresh(fb)
+    return {"status": "success", "id": fb.id}
 
 
 @router.get("/calendar")
 def get_student_calendar(
+    month: int | None = Query(None, ge=1, le=12),
+    year: int | None = Query(None, ge=2000, le=2100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -328,26 +442,47 @@ def get_student_calendar(
     if not student:
         return []
 
-    # Get all upcoming sessions as calendar events
-    sessions = (
-        db.query(SessionModel)
-        .filter(SessionModel.session_date >= datetime.now().date())
-        .order_by(SessionModel.session_date)
-        .limit(100)
-        .all()
-    )
+    q = db.query(SessionModel).filter(SessionModel.class_name == getattr(student, "class_name"))
 
-    return [
-        {
-            "id": s.id,
-            "title": s.topic or "Session",
-            "date": s.session_date.isoformat() if s.session_date else "",
-            "start_time": str(s.start_time) if s.start_time else "",
-            "end_time": str(s.end_time) if s.end_time else "",
-            "type": s.session_type or "theory",
-        }
-        for s in sessions
-    ]
+    if month and year:
+        # Simple month filter; assumes session_date is a date.
+        start = datetime(year, month, 1).date()
+        end = (
+            datetime(year + 1, 1, 1).date()
+            if month == 12
+            else datetime(year, month + 1, 1).date()
+        )
+        q = q.filter(SessionModel.session_date >= start, SessionModel.session_date < end)
+    else:
+        q = q.filter(SessionModel.session_date >= datetime.now().date())
+
+    sessions = q.order_by(SessionModel.session_date.asc(), SessionModel.start_time.asc()).limit(200).all()
+
+    trainer_ids = {getattr(s, "trainer_id", None) for s in sessions}
+    trainer_ids.discard(None)
+    trainer_map = {}
+    if trainer_ids:
+        rows = db.query(User.id, User.username).filter(User.id.in_(trainer_ids)).all()
+        trainer_map = {r[0]: r[1] for r in rows}
+
+    events = []
+    for s in sessions:
+        session_type = (s.session_type or "").lower()
+        event_type = "exam" if "exam" in session_type else "class"
+        trainer_name = trainer_map.get(getattr(s, "trainer_id", None))
+        events.append(
+            {
+                "id": s.id,
+                "title": s.title or s.topic or "Session",
+                "date": s.session_date.isoformat() if s.session_date else "",
+                "time": str(s.start_time)[:5] if s.start_time else "",
+                "location": str(getattr(s, "classroom_id", "")),
+                "type": event_type,
+                "description": f"Cours avec {trainer_name}" if trainer_name and event_type == "class" else None,
+            }
+        )
+
+    return events
 
 
 @router.get("/profile")
@@ -370,7 +505,7 @@ def get_student_profile(
         "email": student.email,
         "phone": student.phone,
         "student_code": student.student_code,
-        "class_name": student.class_name,
+        "class_name": getattr(student, "class_name"),
         "attendance_rate": student.attendance_rate,
         "profile_photo_path": student.profile_photo_path,
     }
@@ -394,6 +529,17 @@ def update_student_profile(
         student.phone = payload["phone"]
     if "email" in payload:
         student.email = payload["email"]
+    if "first_name" in payload:
+        student.first_name = payload["first_name"]
+    if "last_name" in payload:
+        student.last_name = payload["last_name"]
+    if "full_name" in payload and isinstance(payload.get("full_name"), str):
+        full_name = payload.get("full_name", "").strip()
+        if full_name:
+            parts = full_name.split()
+            student.first_name = parts[0]
+            if len(parts) > 1:
+                student.last_name = " ".join(parts[1:])
 
     db.commit()
     return {"status": "success"}
@@ -472,7 +618,7 @@ def get_student_notifications(
             "id": n.id,
             "title": n.title,
             "message": n.message,
-            "type": n.type,
+            "type": n.notification_type,
             "read": n.read,
             "created_at": n.created_at.isoformat() if n.created_at else None,
         }
@@ -532,6 +678,177 @@ def delete_notification(
     return {"status": "success"}
 
 
+@router.get("/notification-preferences")
+def get_notification_preferences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get notification preferences for the student."""
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Only students can access preferences")
+
+    from app.models.notification_preferences import NotificationPreferences
+
+    prefs = (
+        db.query(NotificationPreferences)
+        .filter(NotificationPreferences.user_id == current_user.id)
+        .first()
+    )
+
+    if not prefs:
+        prefs = NotificationPreferences(user_id=current_user.id)
+        db.add(prefs)
+        db.commit()
+        db.refresh(prefs)
+
+    return {
+        "system": prefs.system,
+        "justification": prefs.justification,
+        "schedule": prefs.schedule,
+        "message": prefs.message,
+        "email": prefs.email,
+        "push": prefs.push,
+    }
+
+
+@router.get("/active-sessions-for-checkin")
+def get_active_sessions_for_checkin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get active sessions available for student check-in (filtered by student's class)."""
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Only students can access this endpoint")
+
+    # Get student record to find their class
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    # Get sessions that match the student's class and are active for attendance
+    from app.models.smart_attendance import AttendanceSession
+    from app.models.trainer import Trainer
+    
+    active_sessions = (
+        db.query(
+            SessionModel.id,
+            SessionModel.title,
+            SessionModel.class_name,
+            SessionModel.session_date,
+            SessionModel.start_time,
+            SessionModel.end_time,
+            SessionModel.trainer_id,
+        )
+        .join(AttendanceSession, SessionModel.id == AttendanceSession.session_id)
+        .filter(
+            SessionModel.class_name == getattr(student, "class_name"),  # Only sessions for their class
+            AttendanceSession.is_active == True,
+        )
+        .all()
+    )
+    
+    # Get trainer names (prefer trainer profile; fall back to user name if needed)
+    trainer_names = {}
+    for session_record in active_sessions:
+        if session_record.trainer_id:
+            trainer = db.query(Trainer).filter(Trainer.id == session_record.trainer_id).first()
+            if trainer:
+                # Use trainer profile fields if available, otherwise fall back to linked user name
+                if trainer.first_name or trainer.last_name:
+                    trainer_names[session_record.trainer_id] = " ".join(
+                        part for part in [trainer.first_name, trainer.last_name] if part
+                    ).strip()
+                else:
+                    from app.models.user import User as UserModel
+
+                    user = db.query(UserModel).filter(UserModel.id == trainer.user_id).first()
+                    trainer_names[session_record.trainer_id] = user.name if user else "Unknown"
+            else:
+                # Try to get from User directly if trainer_id is actually a user_id
+                from app.models.user import User as UserModel
+
+                user = db.query(UserModel).filter(UserModel.id == session_record.trainer_id).first()
+                trainer_names[session_record.trainer_id] = user.name if user else "Unknown"
+
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "class_name": s.class_name,
+            "date": s.session_date.isoformat() if isinstance(s.session_date, datetime) else str(s.session_date),
+            "start_time": str(s.start_time),
+            "end_time": str(s.end_time),
+            "trainer_name": trainer_names.get(s.trainer_id, "Unknown"),
+            "is_attendance_active": True,
+        }
+        for s in active_sessions
+    ]
+
+
+@router.post("/submit-checkin")
+async def submit_facial_checkin(
+    session_id: int = Query(...),
+    photo: UploadFile = File(...),
+    latitude: float = Query(None),
+    longitude: float = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Submit facial recognition check-in for a session."""
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Only students can submit check-in")
+
+    # Verify session exists and is active
+    from app.models.smart_attendance import AttendanceSession
+    
+    attendance_session = (
+        db.query(AttendanceSession)
+        .filter(
+            AttendanceSession.session_id == session_id,
+            AttendanceSession.is_active == True,
+        )
+        .first()
+    )
+
+    if not attendance_session:
+        raise HTTPException(status_code=404, detail="Session not active or not found")
+
+    # Verify student is in the correct class for this session
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if student.class_name != session.class_name:
+        raise HTTPException(status_code=403, detail="You are not in the correct class for this session")
+
+    try:
+        # Process facial recognition check-in
+        from app.services.self_checkin import SelfCheckinService
+        
+        service = SelfCheckinService()
+        
+        # Read photo file
+        photo_bytes = await photo.read()
+        
+        result = service.process_facial_checkin(
+            photo_data=photo_bytes,
+            student_id=student.id,
+            session_id=session_id,
+            latitude=latitude,
+            longitude=longitude,
+            db=db,
+        )
+
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.put("/notification-preferences")
 def update_notification_preferences(
     payload: Dict,
@@ -542,5 +859,29 @@ def update_notification_preferences(
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Only students can update preferences")
 
-    # Placeholder - implement preferences model if needed
-    return {"status": "success"}
+    from app.models.notification_preferences import NotificationPreferences
+
+    prefs = (
+        db.query(NotificationPreferences)
+        .filter(NotificationPreferences.user_id == current_user.id)
+        .first()
+    )
+    if not prefs:
+        prefs = NotificationPreferences(user_id=current_user.id)
+        db.add(prefs)
+
+    # Only update known keys; ignore extras.
+    for key in ["system", "justification", "schedule", "message", "email", "push"]:
+        if key in payload:
+            setattr(prefs, key, bool(payload[key]))
+
+    db.commit()
+    db.refresh(prefs)
+    return {
+        "system": prefs.system,
+        "justification": prefs.justification,
+        "schedule": prefs.schedule,
+        "message": prefs.message,
+        "email": prefs.email,
+        "push": prefs.push,
+    }

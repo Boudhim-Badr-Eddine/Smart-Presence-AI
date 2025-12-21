@@ -1,16 +1,16 @@
-from datetime import date, time
 import os
+from datetime import date, time
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.models.user import User
-from app.models.student import Student
-from app.models.trainer import Trainer
-from app.models.session import Session as SessionModel
 from app.models.attendance import AttendanceRecord
 from app.models.notification import Notification
+from app.models.session import Session as SessionModel
+from app.models.student import Student
+from app.models.trainer import Trainer
+from app.models.user import User
 from app.services.auth import get_password_hash
 from app.services.facial import enroll_user_faces
 

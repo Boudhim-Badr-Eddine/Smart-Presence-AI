@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api-client";
 
 interface TrainerOption {
   id: number;
@@ -22,31 +23,23 @@ export default function ServiceNoteForm() {
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [resultKind, setResultKind] = useState<"success" | "error" | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const allowedExtensions = ["pdf", "doc", "docx", "odt", "xlsx", "xls", "ppt", "pptx", "png", "jpg", "jpeg"];
   const maxSizeMB = 10;
 
   useEffect(() => {
     // Load trainers (paginated, take first page)
-    const token = localStorage.getItem("spa_access_token");
-    fetch(`${apiUrl}/api/admin/trainers?page=1&page_size=100`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const items = data.items || [];
+    apiClient(`/api/admin/trainers?page=1&page_size=100`, { method: 'GET' })
+      .then((data: any) => {
+        const items = data?.items || [];
         setTrainers(items.map((i: any) => ({ id: i.id, name: i.name, email: i.email })));
       })
       .catch(() => {});
 
     // Load classes (distinct from sessions)
-    fetch(`${apiUrl}/api/admin/classes`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((r) => r.json())
-      .then((data) => setClasses(data.classes || []))
+    apiClient(`/api/admin/classes`, { method: 'GET' })
+      .then((data: any) => setClasses(data?.classes || []))
       .catch(() => {});
-  }, [apiUrl]);
+  }, []);
 
   const toggleTrainer = (id: number) => {
     setSelectedTrainers((prev) =>
@@ -97,16 +90,10 @@ export default function ServiceNoteForm() {
     }
 
     try {
-      const token = localStorage.getItem("spa_access_token");
-      const res = await fetch(`${apiUrl}/api/admin/messages`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
+      await apiClient(`/api/admin/messages`, {
+        method: 'POST',
+        data: fd,
       });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || `HTTP ${res.status}`);
-      }
       setResultMsg("Message envoyé avec succès ✉️");
       setResultKind("success");
       setTitle("");
@@ -115,7 +102,8 @@ export default function ServiceNoteForm() {
       setSelectedClasses([]);
       setFiles(null);
     } catch (err: any) {
-      setResultMsg(`Erreur: ${err.message || "Échec de l'envoi"}`);
+      const detail = err?.response?.data?.detail;
+      setResultMsg(`Erreur: ${detail || err.message || "Échec de l'envoi"}`);
       setResultKind("error");
     } finally {
       setSubmitting(false);
@@ -139,6 +127,8 @@ export default function ServiceNoteForm() {
         <label className="block text-sm text-zinc-300">Type</label>
         <select
           className="mt-1 w-full rounded bg-zinc-900 p-2 text-white"
+          aria-label="Type"
+          title="Type"
           value={messageType}
           onChange={(e) => setMessageType(e.target.value as any)}
         >
@@ -164,6 +154,8 @@ export default function ServiceNoteForm() {
           type="file"
           multiple
           onChange={(e) => setFiles(e.target.files)}
+          aria-label="Pièce(s) jointe(s)"
+          title="Pièce(s) jointe(s)"
           className="mt-1 w-full text-sm text-zinc-300 file:mr-4 file:rounded file:border-0 file:bg-amber-600 file:px-3 file:py-1 file:text-white hover:file:bg-amber-500"
           accept=".pdf,.doc,.docx,.odt,.xlsx,.xls,.ppt,.pptx,.png,.jpg,.jpeg"
         />

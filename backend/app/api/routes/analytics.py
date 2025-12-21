@@ -15,6 +15,90 @@ from app.utils.deps import get_current_user, get_db
 router = APIRouter(tags=["analytics"])
 
 
+@router.get("/analytics/attendance")
+def get_attendance_timeseries(
+    range: str = Query("month", pattern="^(week|month|year)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get daily attendance counts for admin analytics page."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can view analytics")
+
+    days_map = {"week": 7, "month": 30, "year": 365}
+    cutoff = datetime.now() - timedelta(days=days_map.get(range, 30))
+
+    rows = (
+        db.query(
+            func.date(AttendanceRecord.marked_at).label("day"),
+            AttendanceRecord.status.label("status"),
+            func.count(AttendanceRecord.id).label("count"),
+        )
+        .filter(AttendanceRecord.marked_at >= cutoff)
+        .filter(AttendanceRecord.is_deleted.is_(False))
+        .group_by("day", "status")
+        .order_by("day")
+        .all()
+    )
+
+    by_day: Dict[str, Dict[str, int]] = {}
+    for day, status, count in rows:
+        day_key = day.isoformat() if day else "unknown"
+        if day_key not in by_day:
+            by_day[day_key] = {"present": 0, "absent": 0, "late": 0}
+        if status in by_day[day_key]:
+            by_day[day_key][status] += int(count or 0)
+
+    result: List[Dict] = []
+    for day_key, counts in by_day.items():
+        total = counts["present"] + counts["absent"] + counts["late"]
+        result.append(
+            {
+                "date": day_key,
+                "present": counts["present"],
+                "absent": counts["absent"],
+                "late": counts["late"],
+                "total": total,
+            }
+        )
+
+    return result
+
+
+@router.get("/analytics/classes")
+def get_class_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get per-class attendance summary for admin analytics page."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can view analytics")
+
+    rows = (
+        db.query(
+            Student.class_name.label("class_name"),
+            func.count(Student.id).label("total_students"),
+            func.avg(Student.attendance_rate).label("attendance_rate"),
+            func.avg(Student.total_absence_hours).label("avg_absences"),
+        )
+        .filter(Student.is_deleted.is_(False))
+        .group_by(Student.class_name)
+        .order_by(Student.class_name)
+        .all()
+    )
+
+    return [
+        {
+            "class_name": class_name,
+            "attendance_rate": float(attendance_rate or 0),
+            "total_students": int(total_students or 0),
+            "avg_absences": float(avg_absences or 0),
+        }
+        for class_name, total_students, attendance_rate, avg_absences in rows
+        if class_name
+    ]
+
+
 @router.get("/analytics")
 def get_analytics(
     range: str = Query("month", pattern="^(week|month|quarter|year)$"),

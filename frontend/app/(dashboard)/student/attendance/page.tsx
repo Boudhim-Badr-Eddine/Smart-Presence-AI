@@ -1,14 +1,15 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import RoleGuard from '@/components/auth/RoleGuard';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
-const AttendanceClient = dynamic(() => import('./AttendanceClient'), {
+const AttendanceClient = nextDynamic(() => import('./AttendanceClient'), {
   loading: () => (
     <div className="space-y-4">
       <Skeleton className="h-8 w-48" />
@@ -17,8 +18,6 @@ const AttendanceClient = dynamic(() => import('./AttendanceClient'), {
   ),
   ssr: false,
 });
-
-const apiBase = getApiBase();
 
 type AttendanceRecord = {
   id: number;
@@ -32,16 +31,10 @@ export default function AttendancePage() {
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['student-attendance'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/attendance`).catch(() => ({
-        data: [
-          { id: 1, date: '2025-01-12', subject: 'Dev Web', status: 'present', justified: false },
-          { id: 2, date: '2025-01-11', subject: 'Database', status: 'absent', justified: true },
-          { id: 3, date: '2025-01-10', subject: 'Dev Web', status: 'present', justified: false },
-          { id: 4, date: '2025-01-09', subject: 'Security', status: 'late', justified: false },
-          { id: 5, date: '2025-01-08', subject: 'Dev Web', status: 'present', justified: false },
-        ],
-      }));
-      return res.data as AttendanceRecord[];
+      return apiClient<AttendanceRecord[]>('/api/student/attendance?limit=200', {
+        method: 'GET',
+        useCache: false,
+      });
     },
   });
 

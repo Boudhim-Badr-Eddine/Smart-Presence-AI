@@ -2,12 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Send, Search, User, Circle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { getApiBase } from '@/lib/config';
-
-const apiBase = getApiBase();
+import { apiClient } from '@/lib/api-client';
 
 type Thread = {
   id: number;
@@ -38,27 +35,7 @@ export default function MessagesClient() {
   const { data: threads = [] } = useQuery({
     queryKey: ['message-threads'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/messages/threads`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            participant_name: 'M. Ahmed',
-            participant_role: 'trainer',
-            last_message: 'Bonjour, comment puis-je vous aider?',
-            last_message_at: '2025-01-14T10:30:00Z',
-            unread_count: 2,
-          },
-          {
-            id: 2,
-            participant_name: 'Lamiae Idrissi',
-            participant_role: 'student',
-            last_message: 'Merci pour la réponse',
-            last_message_at: '2025-01-13T15:20:00Z',
-            unread_count: 0,
-          },
-        ],
-      }));
-      return res.data as Thread[];
+      return apiClient<Thread[]>('/api/messages/threads', { method: 'GET', useCache: false });
     },
   });
 
@@ -66,34 +43,17 @@ export default function MessagesClient() {
     queryKey: ['messages', selectedThread],
     queryFn: async () => {
       if (!selectedThread) return [];
-      const res = await axios.get(`${apiBase}/api/messages/thread/${selectedThread}`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            sender_id: 2,
-            sender_name: 'M. Ahmed',
-            content: 'Bonjour, comment puis-je vous aider?',
-            created_at: '2025-01-14T10:30:00Z',
-            read: true,
-          },
-          {
-            id: 2,
-            sender_id: 1,
-            sender_name: 'Vous',
-            content: "J'ai une question sur le cours de demain",
-            created_at: '2025-01-14T10:32:00Z',
-            read: true,
-          },
-        ],
-      }));
-      return res.data as Message[];
+      return apiClient<Message[]>(`/api/messages/thread/${selectedThread}`, {
+        method: 'GET',
+        useCache: false,
+      });
     },
     enabled: selectedThread !== null,
   });
 
   const sendMutation = useMutation({
     mutationFn: async (data: { thread_id: number; content: string }) => {
-      return axios.post(`${apiBase}/api/messages/send`, data);
+      return apiClient('/api/messages/send', { method: 'POST', data });
     },
     onMutate: async (data) => {
       await queryClient.cancelQueries({ queryKey: ['messages', selectedThread] });
@@ -268,6 +228,7 @@ export default function MessagesClient() {
                 <button
                   onClick={handleSendMessage}
                   disabled={sendMutation.isPending || !messageInput.trim()}
+                  aria-label="Envoyer le message"
                   className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 transition"
                 >
                   <Send className="h-4 w-4" />

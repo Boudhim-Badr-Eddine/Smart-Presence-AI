@@ -104,7 +104,7 @@ class UserService:
     @staticmethod
     def get_students_by_class(db: Session, class_name: str) -> List[Student]:
         """Get all students in a class."""
-        return db.query(Student).filter(getattr(Student, "class") == class_name).all()
+        return db.query(Student).filter(Student.class_name == class_name).all()
 
     @staticmethod
     def update_student_alert_level(db: Session, student_id: int, level: str):

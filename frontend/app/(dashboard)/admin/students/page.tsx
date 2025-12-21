@@ -1,4 +1,6 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import RoleGuard from '@/components/auth/RoleGuard';
 import nextDynamic from 'next/dynamic';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';

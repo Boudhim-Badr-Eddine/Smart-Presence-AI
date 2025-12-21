@@ -41,8 +41,8 @@ def enroll_face(payload: EnrollPayload, db: Session = Depends(get_db)):
         db.execute(
             text(
                 """
-                INSERT INTO facial_embeddings (student_id, image_path, image_hash, embedding_model, is_primary, embedding_vector)
-                VALUES (:sid, :path, :hash, 'insightface', :is_primary, :vec::vector)
+                INSERT INTO facial_embeddings (student_id, image_path, image_hash, embedding_model, is_primary, embedding)
+                VALUES (:sid, :path, :hash, 'insightface', :is_primary, (:vec)::vector)
                 """
             ),
             {
@@ -71,7 +71,7 @@ def verify_face(payload: VerifyPayload, db: Session = Depends(get_db)):
     result = db.execute(
         text(
             """
-            SELECT student_id, 1 - (embedding_vector <=> :vec::vector) AS similarity
+            SELECT student_id, 1 - (embedding <=> (:vec)::vector) AS similarity
             FROM facial_embeddings
             WHERE student_id = :sid
             ORDER BY similarity DESC

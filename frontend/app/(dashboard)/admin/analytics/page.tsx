@@ -9,7 +9,6 @@ import { TrendingUp, Users, Calendar, BarChart3, Download, PieChart } from 'luci
 import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApiQuery } from '@/lib/api-client';
-import { getApiBase } from '@/lib/config';
 import { getWebSocketManager } from '@/lib/websocket';
 import OnboardingTour from '@/components/OnboardingTour';
 
@@ -25,10 +24,9 @@ type AnalyticsData = {
 export default function AdminAnalyticsPage() {
   const [dateRange, setDateRange] = useState('month');
   const queryClient = useQueryClient();
-  const apiBase = getApiBase();
   const analyticsQuery = useApiQuery<AnalyticsData>(
     ['admin-analytics', dateRange],
-    `/api/admin/analytics?range=${dateRange}`,
+    `/api/analytics?range=${dateRange}`,
     { method: 'GET' },
   );
   const analytics = (analyticsQuery as any).data as AnalyticsData | undefined;
@@ -204,7 +202,11 @@ export default function AdminAnalyticsPage() {
                       </span>
                     </div>
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400" style={{ width: `${item.rate}%` }} />
+                      <progress
+                        className="h-2 w-full accent-emerald-400 bg-white/10 rounded-full"
+                        value={Math.min(Math.max(item.rate, 0), 100)}
+                        max={100}
+                      />
                     </div>
                   </div>
                 ))}
@@ -234,9 +236,10 @@ export default function AdminAnalyticsPage() {
                       </span>
                     </div>
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-400"
-                        style={{ width: `${cls.attendance_rate}%` }}
+                      <progress
+                        className="h-2 w-full accent-blue-400 bg-white/10 rounded-full"
+                        value={Math.min(Math.max(cls.attendance_rate, 0), 100)}
+                        max={100}
                       />
                     </div>
                     <div className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">

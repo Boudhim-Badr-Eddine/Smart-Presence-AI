@@ -30,10 +30,45 @@
   transform: rotate(3deg) translate(0px, -4px);
 }
 
+/* Base theme tokens */
 :root {
   color-scheme: dark;
   background-color: #1a1a2e;
   color: #f8f8f2;
+}
+
+.light {
+  color-scheme: light;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.dark {
+  color-scheme: dark;
+  background-color: #0b1120;
+  color: #f8fafc;
+}
+
+.contrast {
+  color-scheme: light;
+  background-color: #000000;
+  color: #ffff00;
+  --brand: 54 100% 50%;
+}
+
+.contrast a,
+.contrast button,
+.contrast input,
+.contrast select,
+.contrast textarea {
+  color: #ffff00 !important;
+  background-color: #000000 !important;
+  border-color: #ffff00 !important;
+}
+
+.contrast :focus-visible {
+  outline: 3px solid #00ffff;
+  outline-offset: 3px;
 }
 
 /* Palette theming using data attributes */
@@ -62,21 +97,67 @@
 :focus-visible {
   outline: 2px solid hsl(var(--brand));
   outline-offset: 2px;
+  transition: outline-offset 0.2s ease;
+}
+
+:focus-visible:not(input):not(textarea):not(select) {
+  outline-width: 3px;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid hsl(var(--brand));
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px hsl(var(--brand) / 0.2);
+}
+
+.contrast button:focus-visible,
+.contrast a:focus-visible,
+.contrast [role="button"]:focus-visible {
+  outline: 4px solid #00ffff;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px rgba(0, 255, 255, 0.3);
 }
 
 /* Skip link */
 .skip-link {
   position: absolute;
-  top: -40px;
-  left: 0;
+  top: -60px;
+  left: 8px;
+  z-index: 10000;
   background: #111827;
   color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: top 0.2s ease;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: top 0.3s ease, box-shadow 0.3s ease;
 }
+
 .skip-link:focus {
-  top: 8px;
+  top: 12px;
+  outline: 3px solid #fbbf24;
+  outline-offset: 3px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.light .skip-link {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.contrast .skip-link {
+  background: #000000;
+  color: #ffff00;
+  border: 3px solid #ffff00;
+}
+
+.contrast .skip-link:focus {
+  outline: 4px solid #00ffff;
+  border-color: #00ffff;
+  box-shadow: 0 0 0 8px rgba(0, 255, 255, 0.4);
 }
 
 :root.light {

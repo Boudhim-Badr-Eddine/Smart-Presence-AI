@@ -4,13 +4,14 @@ export const dynamic = 'force-dynamic';
 import RoleGuard from '@/components/auth/RoleGuard';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { Clock, Users, TrendingUp, BarChart3, ChevronRight, AlertCircle } from 'lucide-react';
+import { Clock, Users, TrendingUp, BarChart3, ChevronRight, AlertCircle, Send } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { getApiBase } from '@/lib/config';
+import { useEffect, useState } from 'react';
 import { getWebSocketManager } from '@/lib/websocket';
 import OnboardingTour from '@/components/OnboardingTour';
+import { apiClient } from '@/lib/api-client';
+import SessionRequestModal from '@/components/SessionRequestModal';
+import { Button } from '@/components/ui/button';
 
 type TrainerStats = {
   total_sessions: number;
@@ -29,8 +30,8 @@ type UpcomingSession = {
 };
 
 export default function TrainerPage() {
-  const apiBase = getApiBase();
   const queryClient = useQueryClient();
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   useEffect(() => {
     const ws = getWebSocketManager();
@@ -54,50 +55,17 @@ export default function TrainerPage() {
   const { data: stats } = useQuery({
     queryKey: ['trainer-stats'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/trainer/stats`).catch(() => ({
-        data: {
-          total_sessions: 8,
-          total_students: 120,
-          attendance_rate: 92.5,
-          this_week_sessions: 3,
-        },
-      }));
-      return res.data as TrainerStats;
+      return apiClient<TrainerStats>('/api/trainer/stats', { method: 'GET', useCache: false });
     },
   });
 
   const { data: sessions } = useQuery({
     queryKey: ['trainer-upcoming-sessions'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/trainer/upcoming-sessions`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            title: 'Web Dev I',
-            date: '2025-12-15',
-            time: '09:00',
-            class_name: 'L3-Dev-A',
-            student_count: 30,
-          },
-          {
-            id: 2,
-            title: 'Database Design',
-            date: '2025-12-16',
-            time: '14:00',
-            class_name: 'L3-Dev-B',
-            student_count: 28,
-          },
-          {
-            id: 3,
-            title: 'Web Dev II',
-            date: '2025-12-17',
-            time: '09:00',
-            class_name: 'L3-Dev-A',
-            student_count: 30,
-          },
-        ],
-      }));
-      return res.data as UpcomingSession[];
+      return apiClient<UpcomingSession[]>('/api/trainer/upcoming-sessions?limit=10', {
+        method: 'GET',
+        useCache: false,
+      });
     },
   });
 
@@ -232,13 +200,22 @@ export default function TrainerPage() {
               </p>
             )}
           </div>
-
           {/* Quick Actions */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-6 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white">
             <h2 className="text-lg font-semibold text-white dark:text-white light:text-gray-900 mb-4">
               Actions rapides
             </h2>
             <div className="space-y-2">
+              <Button
+                onClick={() => setIsRequestModalOpen(true)}
+                className="w-full flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 transition hover:bg-amber-500/20"
+              >
+                <span className="text-sm font-medium text-amber-300 flex items-center gap-2">
+                  <Send className="h-4 w-4" />
+                  Demander une session
+                </span>
+                <ChevronRight className="h-4 w-4 text-amber-400" />
+              </Button>
               <Link
                 href="/trainer/attendance"
                 className="flex items-center justify-between rounded-lg border border-white/10 bg-white/2 p-3 transition hover:bg-white/5 dark:border-white/10 dark:bg-white/2 dark:hover:bg-white/5 light:border-gray-200 light:bg-gray-50 light:hover:bg-gray-100"
@@ -269,6 +246,16 @@ export default function TrainerPage() {
             </div>
           </div>
         </div>
+        
+        {/* Session Request Modal */}
+        <SessionRequestModal
+          isOpen={isRequestModalOpen}
+          onClose={() => setIsRequestModalOpen(false)}
+          onSuccess={() => {
+            // Optionally show a success message
+            alert('Demande de session envoyée avec succès !');
+          }}
+        />
       </div>
     </RoleGuard>
   );

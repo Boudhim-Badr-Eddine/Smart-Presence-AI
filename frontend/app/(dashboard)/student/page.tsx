@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import RoleGuard from '@/components/auth/RoleGuard';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import {
   Calendar,
   BookOpen,
@@ -14,19 +13,22 @@ import {
   CheckCircle,
   XCircle,
   ChevronRight,
+  Camera,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useEffect } from 'react';
 import OnboardingWalkthrough from '@/components/common/OnboardingWalkthrough';
-import { getApiBase } from '@/lib/config';
 import { getWebSocketManager } from '@/lib/websocket';
 import OnboardingTour from '@/components/OnboardingTour';
+import { apiClient } from '@/lib/api-client';
 
 type StudentStats = {
-  total_classes: number;
   attendance_rate: number;
-  absences: number;
-  justified_absences: number;
+  total_classes?: number;
+  total_sessions?: number;
+  absent_count?: number;
+  absences?: number;
+  justified_absences?: number;
   next_session?: string;
 };
 
@@ -43,12 +45,11 @@ type UpcomingSession = {
   subject: string;
   date: string;
   time: string;
-  classroom: string;
-  trainer_name: string;
+  classroom?: string;
+  trainer_name?: string;
 };
 
 export default function StudentPage() {
-  const apiBase = getApiBase();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -73,67 +74,30 @@ export default function StudentPage() {
   const { data: stats } = useQuery({
     queryKey: ['student-stats'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/stats`).catch(() => ({
-        data: {
-          total_classes: 6,
-          attendance_rate: 88.5,
-          absences: 3,
-          justified_absences: 1,
-          next_session: 'Demain 10:00',
-        },
-      }));
-      return res.data as StudentStats;
+      return apiClient<StudentStats>('/api/student/stats', { method: 'GET', useCache: false });
     },
   });
 
   const { data: attendance } = useQuery({
     queryKey: ['student-attendance'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/attendance`).catch(() => ({
-        data: [
-          { id: 1, date: '2025-01-12', subject: 'Dev Web', status: 'present', justified: false },
-          { id: 2, date: '2025-01-11', subject: 'Database', status: 'absent', justified: true },
-          { id: 3, date: '2025-01-10', subject: 'Dev Web', status: 'present', justified: false },
-          { id: 4, date: '2025-01-09', subject: 'Security', status: 'late', justified: false },
-          { id: 5, date: '2025-01-08', subject: 'Dev Web', status: 'present', justified: false },
-        ],
-      }));
-      return res.data as AttendanceRecord[];
+      return apiClient<AttendanceRecord[]>('/api/student/attendance?limit=50', {
+        method: 'GET',
+        useCache: false,
+      });
     },
   });
 
   const { data: upcomingSessions } = useQuery({
     queryKey: ['student-upcoming-sessions'],
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/upcoming-sessions`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            subject: 'Développement Web I',
-            date: '2025-01-15',
-            time: '09:00',
-            classroom: 'A101',
-            trainer_name: 'M. Alaoui',
-          },
-          {
-            id: 2,
-            subject: 'Base de Données',
-            date: '2025-01-16',
-            time: '14:00',
-            classroom: 'B202',
-            trainer_name: 'Mme Bennani',
-          },
-          {
-            id: 3,
-            subject: 'Développement Web II',
-            date: '2025-01-17',
-            time: '09:00',
-            classroom: 'A101',
-            trainer_name: 'M. Alaoui',
-          },
-        ],
-      }));
-      return res.data as UpcomingSession[];
+      return apiClient<UpcomingSession[]>('/api/student/upcoming-sessions?limit=10', {
+        method: 'GET',
+        useCache: false,
+      });
     },
   });
 
@@ -196,7 +160,7 @@ export default function StudentPage() {
     {
       icon: BookOpen,
       label: 'Classes',
-      value: stats?.total_classes ?? 0,
+      value: stats?.total_classes ?? stats?.total_sessions ?? 0,
       color: 'bg-blue-600/20 text-blue-300',
     },
     {
@@ -208,7 +172,7 @@ export default function StudentPage() {
     {
       icon: AlertCircle,
       label: 'Absences',
-      value: stats?.absences ?? 0,
+      value: stats?.absences ?? stats?.absent_count ?? 0,
       color: 'bg-red-600/20 text-red-300',
     },
     {
@@ -252,6 +216,29 @@ export default function StudentPage() {
             );
           })}
         </div>
+
+        {/* Facial Recognition Check-in CTA */}
+        <Link
+          href="/student/check-in"
+          className="block rounded-xl border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-600/20 to-blue-600/20 p-6 hover:border-emerald-500/50 transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-emerald-500/20 p-4 group-hover:bg-emerald-500/30 transition">
+                <Camera className="h-8 w-8 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">
+                  Check-in par Reconnaissance Faciale
+                </h3>
+                <p className="text-sm text-zinc-300">
+                  Pointez votre présence avec votre visage pour les sessions actives
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-6 w-6 text-emerald-400 group-hover:translate-x-1 transition" />
+          </div>
+        </Link>
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Upcoming Sessions */}

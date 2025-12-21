@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
   Loader2,
   Shield,
 } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 import {
   Dialog,
   DialogContent,
@@ -47,30 +48,26 @@ export default function FraudDetectionPanel() {
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
 
   // Fetch fraud cases
-  const fetchFraudCases = async () => {
+  const fetchFraudCases = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const query = filterSeverity !== 'all' ? `?severity=${filterSeverity}` : '?resolved=false';
-      const response = await fetch(`/api/smart-attendance/fraud-detections${query}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch fraud detections');
-      }
-
-      const data = await response.json();
+      const query = filterSeverity !== 'all' ? `?severity=${encodeURIComponent(filterSeverity)}` : '?resolved=false';
+      const data = await apiClient<FraudDetection[]>(`/api/smart-attendance/fraud-detections${query}`, {
+        method: 'GET',
+      });
       setFraudCases(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filterSeverity]);
 
   useEffect(() => {
     fetchFraudCases();
-  }, [filterSeverity]);
+  }, [fetchFraudCases]);
 
   // Resolve fraud case
   const handleResolveFraud = async () => {
@@ -81,18 +78,13 @@ export default function FraudDetectionPanel() {
 
     try {
       setIsResolving(true);
-      const response = await fetch(
-        `/api/smart-attendance/fraud-detections/${selectedCase.id}/resolve`,
+      await apiClient(
+        `/api/smart-attendance/fraud-detections/${encodeURIComponent(selectedCase.id.toString())}/resolve`,
         {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resolution_notes: resolutionNotes }),
-        }
+          data: { resolution_notes: resolutionNotes },
+        },
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to resolve fraud case');
-      }
 
       // Refresh list
       fetchFraudCases();

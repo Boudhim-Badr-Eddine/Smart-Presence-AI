@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import RoleGuard from '@/components/auth/RoleGuard';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { useState } from 'react';
 import {
   Bell,
@@ -18,7 +17,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
 type Notification = {
   id: number;
@@ -32,61 +31,29 @@ type Notification = {
 export default function TrainerNotificationsPage() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const queryClient = useQueryClient();
-  const apiBase = getApiBase();
-  const { data, isLoading } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['trainer-notifications', filter],
     queryFn: async () => {
-      const res = await axios
-        .get(`${apiBase}/api/trainer/notifications`, {
-          params: { unread_only: filter === 'unread' },
-        })
-        .catch(() => ({
-          data: {
-            items: [
-              {
-                id: 1,
-                title: 'Justification en attente',
-                message: 'Sara Bennani a soumis une justification pour Dev Web',
-                type: 'warning',
-                read: false,
-                created_at: new Date().toISOString(),
-              },
-              {
-                id: 2,
-                title: 'Nouveau message étudiant',
-                message: 'Karim El Khabazi a ajouté un commentaire sur la séance du 15/12',
-                type: 'info',
-                read: false,
-                created_at: new Date().toISOString(),
-              },
-              {
-                id: 3,
-                title: 'Session modifiée',
-                message: 'La session Base de Données est décalée à 14h00',
-                type: 'success',
-                read: true,
-                created_at: new Date().toISOString(),
-              },
-            ],
-          },
-        }));
-      return res.data as { items: Notification[] };
+      return apiClient<Notification[]>(
+        `/api/trainer/notifications?unread_only=${filter === 'unread' ? 'true' : 'false'}`,
+        { method: 'GET', useCache: false },
+      );
     },
   });
 
   const markReadMutation = useMutation({
     mutationFn: (id: number) =>
-      axios.patch(`${apiBase}/api/trainer/notifications/${id}`, { read: true }),
+      apiClient(`/api/trainer/notifications/${id}`, { method: 'PATCH', data: { read: true } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trainer-notifications'] }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => axios.delete(`${apiBase}/api/trainer/notifications/${id}`),
+    mutationFn: (id: number) => apiClient(`/api/trainer/notifications/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trainer-notifications'] }),
   });
 
   const bulkMarkRead = async () => {
-    const unreadIds = data?.items.filter((n) => !n.read).map((n) => n.id) ?? [];
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     await Promise.all(unreadIds.map((id) => markReadMutation.mutateAsync(id)));
   };
 
@@ -167,7 +134,7 @@ export default function TrainerNotificationsPage() {
             <div>
               <p className="text-sm text-zinc-300 dark:text-zinc-300 light:text-gray-700">Total</p>
               <p className="text-xl font-semibold text-white dark:text-white light:text-gray-900">
-                {data?.items.length ?? 0}
+                {notifications.length}
               </p>
             </div>
           </div>
@@ -178,7 +145,7 @@ export default function TrainerNotificationsPage() {
                 Justifications
               </p>
               <p className="text-xl font-semibold text-white dark:text-white light:text-gray-900">
-                {data?.items.filter((n) => n.title.toLowerCase().includes('justification'))
+                {notifications.filter((n) => n.title.toLowerCase().includes('justification'))
                   .length ?? 0}
               </p>
             </div>
@@ -190,7 +157,7 @@ export default function TrainerNotificationsPage() {
                 Messages étudiants
               </p>
               <p className="text-xl font-semibold text-white dark:text-white light:text-gray-900">
-                {data?.items.filter((n) => n.title.toLowerCase().includes('message')).length ?? 0}
+                {notifications.filter((n) => n.title.toLowerCase().includes('message')).length ?? 0}
               </p>
             </div>
           </div>
@@ -198,9 +165,9 @@ export default function TrainerNotificationsPage() {
 
         {isLoading ? (
           <div className="text-center py-8 text-zinc-400">Chargement...</div>
-        ) : data?.items && data.items.length > 0 ? (
+        ) : notifications.length > 0 ? (
           <div className="space-y-3">
-            {data.items.map((notification, idx) => (
+            {notifications.map((notification, idx) => (
               <motion.div
                 key={notification.id}
                 initial={{ opacity: 0, y: 10 }}

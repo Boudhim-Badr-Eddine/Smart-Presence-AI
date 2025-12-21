@@ -14,6 +14,7 @@ import { getApiBase } from '@/lib/config';
 import { getWebSocketManager } from '@/lib/websocket';
 import AdvancedFilters from '@/components/ui/AdvancedFilters';
 import OnboardingTour from '@/components/OnboardingTour';
+import { apiClient } from '@/lib/api-client';
 
 interface UserRow {
   id: number;
@@ -39,32 +40,21 @@ export default function AdminFacesPage() {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...(authHeaders as Record<string, string>),
-      };
-
       const params = new URLSearchParams();
       if (filters.role) params.append('role', String(filters.role));
       if (filters.search) params.append('search', String(filters.search));
 
-      const res = await fetch(`${apiBase}/api/admin/users?${params.toString()}`, { headers });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(
-          `Impossible de charger les utilisateurs (${res.status}): ${text.slice(0, 120)}`,
-        );
-      }
-
-      const data = await res.json();
+      const data = await apiClient(`/api/admin/users?${params.toString()}`, {
+        method: 'GET',
+        headers: authHeaders as Record<string, string>,
+      });
       setUsers(Array.isArray(data?.users) ? data.users : []);
     } catch (e: any) {
       setError(e?.message || 'Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
-  }, [apiBase, authHeaders, filters]);
+  }, [authHeaders, filters]);
 
   useEffect(() => {
     loadUsers();

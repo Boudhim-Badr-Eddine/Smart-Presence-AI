@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { getApiBase } from './config';
 
 /**
  * Centralized API client with typed error handling and request utilities.
@@ -143,7 +144,7 @@ class ApiClient {
   private token: string | null = null;
 
   constructor() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const apiUrl = getApiBase();
     this.client = axios.create({
       baseURL: `${apiUrl}/api`,
     });

@@ -2,11 +2,8 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Send, MessageCircle, Clock, CheckCircle } from 'lucide-react';
-import { getApiBase } from '@/lib/config';
-
-const apiBase = getApiBase();
+import { apiClient } from '@/lib/api-client';
 
 type Feedback = {
   id: number;
@@ -25,25 +22,13 @@ export default function FeedbackClient() {
   const { data: feedbacks = [] } = useQuery({
     queryKey: ['student-feedbacks'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/feedbacks`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            subject: "Problème d'accès",
-            message: 'Impossible de me connecter hier',
-            status: 'reviewed',
-            created_at: '2025-01-10',
-            response: 'Le problème a été résolu. Merci pour votre retour.',
-          },
-        ],
-      }));
-      return res.data as Feedback[];
+      return apiClient<Feedback[]>('/api/student/feedbacks', { method: 'GET', useCache: false });
     },
   });
 
   const submitMutation = useMutation({
     mutationFn: async (data: { subject: string; message: string }) => {
-      return axios.post(`${apiBase}/api/student/feedbacks`, data);
+      return apiClient('/api/student/feedbacks', { method: 'POST', data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['student-feedbacks'] });

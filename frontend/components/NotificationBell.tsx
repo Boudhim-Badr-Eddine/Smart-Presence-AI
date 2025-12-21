@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth-context';
+import { apiClient } from '@/lib/api-client';
 
 interface Notification {
   id: number;
@@ -36,20 +37,16 @@ export function NotificationBell() {
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/notifications/user/${user.id}?unread_only=false&limit=10`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        },
-      );
+      const data = await apiClient<{
+        notifications?: Notification[];
+        unread_count?: number;
+      }>(`/api/notifications/me?unread_only=false&limit=10`, {
+        method: 'GET',
+        useCache: false,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unread_count || 0);
-      }
+      setNotifications(data?.notifications || []);
+      setUnreadCount(data?.unread_count || 0);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -60,22 +57,13 @@ export function NotificationBell() {
   // Mark notification as read
   const markAsRead = async (notificationId: number) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/notifications/${notificationId}/read`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        },
+      await apiClient(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n)),
       );
-
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n)),
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -86,20 +74,12 @@ export function NotificationBell() {
     if (!user) return;
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/notifications/user/${user.id}/read-all`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        },
-      );
+      await apiClient(`/api/notifications/user/${user.id}/read-all`, {
+        method: 'PUT',
+      });
 
-      if (response.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-        setUnreadCount(0);
-      }
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
@@ -110,11 +90,13 @@ export function NotificationBell() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Poll for new notifications every 30 seconds
+  // Poll for new notifications every 30 seconds (only if user exists)
   useEffect(() => {
+    if (!user) return;
+    
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [fetchNotifications, user]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);

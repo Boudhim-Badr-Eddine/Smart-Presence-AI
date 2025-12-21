@@ -2,13 +2,42 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { api, Session, Student } from '@/lib/api';
+import { apiClient } from '@/lib/api-client';
 import { QrCode, Camera, Lock, CheckCircle2, AlertCircle, LogOut, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import QRScanner from '@/components/common/QRScanner';
 import { AttendanceDialog } from '@/components/AttendanceDialog';
 import { LoadingOverlay } from '@/components/ui/spinner';
+
+type TrainerSession = {
+  id: number;
+  title: string;
+  class_name: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status?: string;
+  students?: number;
+};
+
+type SessionStudent = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  class_name: string;
+};
+
+type SessionAttendanceRecord = {
+  id: number;
+  session_id: number;
+  student_id: number;
+  status: 'present' | 'absent' | 'late' | 'excused';
+  marked_at?: string | null;
+  justification?: string | null;
+  percentage?: number | null;
+};
 
 interface StudentAttendance {
   studentId: number;
@@ -29,7 +58,7 @@ interface DialogState {
 
 export default function MarkAttendance() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<TrainerSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [markingMethod, setMarkingMethod] = useState<'qr' | 'facial' | 'pin' | null>(null);
   const [studentList, setStudentList] = useState<StudentAttendance[]>([]);
@@ -53,12 +82,66 @@ export default function MarkAttendance() {
   const loadSessions = async () => {
     try {
       setLoading(true);
-      const sessionsData = await api.listSessions();
-      setSessions(sessionsData);
+      const sessionsData = await apiClient<any[]>(`/api/trainer/sessions?page=1&limit=100`, {
+        method: 'GET',
+        useCache: false,
+      });
+
+      const mapped: TrainerSession[] = (sessionsData || []).map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        class_name: s.class_name ?? '',
+        date: s.date,
+        start_time: String(s.start_time || '').slice(0, 5),
+        end_time: String(s.end_time || '').slice(0, 5),
+        status: s.status,
+        students: s.students,
+      }));
+      setSessions(mapped);
       setError(null);
     } catch (err) {
       console.error('Failed to load sessions:', err);
       setError('Échec du chargement des sessions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSessionRoster = async (sessionId: number) => {
+    setLoading(true);
+    try {
+      const [students, attendance] = await Promise.all([
+        apiClient<SessionStudent[]>(`/api/trainer/sessions/${sessionId}/students`, {
+          method: 'GET',
+          useCache: false,
+        }),
+        apiClient<{ records: SessionAttendanceRecord[] }>(`/api/attendance/session/${sessionId}/all`, {
+          method: 'GET',
+          useCache: false,
+        }),
+      ]);
+
+      const recordByStudent = new Map<number, SessionAttendanceRecord>();
+      (attendance?.records || []).forEach((r) => recordByStudent.set(r.student_id, r));
+
+      const list: StudentAttendance[] = (students || []).map((st) => {
+        const rec = recordByStudent.get(st.id);
+        return {
+          studentId: st.id,
+          name: `${st.first_name} ${st.last_name}`.trim() || st.email,
+          status: rec?.status ?? 'unmarked',
+          markedAt: rec?.marked_at ? new Date(rec.marked_at).toLocaleTimeString('fr-FR') : undefined,
+          justification: rec?.justification ?? undefined,
+          percentage: rec?.percentage ?? undefined,
+        };
+      });
+
+      setStudentList(list);
+      setMarkedStudents(new Set(list.filter((s) => s.status !== 'unmarked').map((s) => s.studentId)));
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load roster:', err);
+      setError('Échec du chargement des étudiants');
     } finally {
       setLoading(false);
     }
@@ -69,6 +152,7 @@ export default function MarkAttendance() {
     setMarkingMethod(null);
     setStudentList([]);
     setMarkedStudents(new Set());
+    void loadSessionRoster(sessionId);
   };
 
   const handleStartMarking = async (method: 'qr' | 'facial' | 'pin') => {
@@ -76,28 +160,46 @@ export default function MarkAttendance() {
     if (method === 'qr') {
       setShowQRScanner(true);
     }
-    // Load student list for the session
-    const mockStudents: StudentAttendance[] = [
-      { studentId: 1, name: 'Taha El Khabazi', status: 'unmarked' },
-      { studentId: 2, name: 'Rashed Naitaamou', status: 'unmarked' },
-      { studentId: 3, name: 'Walid El Tahiri', status: 'unmarked' },
-      { studentId: 4, name: 'Sara Aitaamou', status: 'unmarked' },
-      { studentId: 5, name: 'Karim Bennani', status: 'unmarked' },
-    ];
-    setStudentList(mockStudents);
+    if (selectedSession) {
+      await loadSessionRoster(selectedSession);
+    }
   };
 
   const handleQRScan = (data: string) => {
     // In a real system, this would map the QR code to a student
     console.log('QR Code scanned:', data);
     setShowQRScanner(false);
-    // Example: mark first student as present
-    if (studentList.length > 0) {
-      markPresent(studentList[0].studentId);
-    }
   };
 
-  const markPresent = (studentId: number) => {
+  const persistAttendance = async (payload: {
+    session_id: number;
+    student_id: number;
+    status: 'present' | 'absent' | 'late' | 'excused';
+    percentage?: number;
+    justification?: string;
+    marked_via?: string;
+  }) => {
+    await apiClient(`/api/attendance`, {
+      method: 'POST',
+      data: {
+        ...payload,
+        marked_via: payload.marked_via ?? 'manual',
+        percentage: payload.percentage ?? (payload.status === 'present' ? 100 : 0),
+      },
+      useCache: false,
+    });
+  };
+
+  const markPresent = async (studentId: number) => {
+    if (!selectedSession) return;
+    await persistAttendance({
+      session_id: selectedSession,
+      student_id: studentId,
+      status: 'present',
+      percentage: 100,
+      marked_via: markingMethod ? `trainer_${markingMethod}` : 'manual',
+    });
+
     setMarkedStudents(new Set([...markedStudents, studentId]));
     setStudentList((prev) =>
       prev.map((s) =>
@@ -140,8 +242,19 @@ export default function MarkAttendance() {
     });
   };
 
-  const handleDialogSubmit = (justification: string, percentage: number) => {
+  const handleDialogSubmit = async (justification: string, percentage: number) => {
     if (!dialogState.studentId) return;
+
+    if (selectedSession) {
+      await persistAttendance({
+        session_id: selectedSession,
+        student_id: dialogState.studentId,
+        status: dialogState.status,
+        justification,
+        percentage,
+        marked_via: markingMethod ? `trainer_${markingMethod}` : 'manual',
+      });
+    }
 
     setMarkedStudents(new Set([...markedStudents, dialogState.studentId]));
     setStudentList((prev) =>
@@ -160,7 +273,9 @@ export default function MarkAttendance() {
   };
 
   const handleLogout = () => {
-    api.clearToken();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('spa_access_token');
+    }
     router.push('/auth/login');
   };
 
@@ -230,9 +345,9 @@ export default function MarkAttendance() {
                 key={session.id}
                 onClick={() => handleSelectSession(session.id)}
                 className="rounded-lg border border-white/10 bg-white/5 p-4 text-left hover:bg-white/10 hover:border-white/20 transition"
-                aria-label={`Session: ${session.subject}, Classe: ${session.class_name}, Date: ${new Date(session.date).toLocaleDateString('fr-FR')}`}
+                aria-label={`Session: ${session.title}, Classe: ${session.class_name}, Date: ${new Date(session.date).toLocaleDateString('fr-FR')}`}
               >
-                <p className="font-semibold">{session.subject}</p>
+                <p className="font-semibold">{session.title}</p>
                 <p className="text-sm text-white/60">{session.class_name}</p>
                 <p className="mt-2 text-xs text-white/50">
                   {new Date(session.date).toLocaleDateString('fr-FR')}
@@ -250,7 +365,7 @@ export default function MarkAttendance() {
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className="font-semibold text-lg">{currentSession?.subject}</p>
+                <p className="font-semibold text-lg">{currentSession?.title}</p>
                 <p className="text-white/60">{currentSession?.class_name}</p>
               </div>
               <button
@@ -265,15 +380,12 @@ export default function MarkAttendance() {
             <h2 className="mb-6 font-semibold text-lg">Choisissez la méthode de pointage</h2>
             <div
               className="grid gap-4 md:grid-cols-3"
-              role="radiogroup"
               aria-label="Méthodes de marquage de présence"
             >
               {/* QR Code Method */}
               <button
                 onClick={() => handleStartMarking('qr')}
                 className="rounded-lg border-2 border-white/10 bg-white/5 p-6 hover:border-blue-500/50 hover:bg-blue-500/10 transition"
-                role="radio"
-                aria-checked={markingMethod === 'qr'}
                 aria-label="Code QR: Scannez les codes QR des étudiants"
               >
                 <QrCode className="mx-auto mb-3 text-blue-300" size={32} />
@@ -285,8 +397,6 @@ export default function MarkAttendance() {
               <button
                 onClick={() => handleStartMarking('facial')}
                 className="rounded-lg border-2 border-white/10 bg-white/5 p-6 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition"
-                role="radio"
-                aria-checked={markingMethod === 'facial'}
                 aria-label="Reconnaissance faciale: Utilisez la caméra pour reconnaître les visages"
               >
                 <Camera className="mx-auto mb-3 text-emerald-300" size={32} />
@@ -300,8 +410,6 @@ export default function MarkAttendance() {
               <button
                 onClick={() => handleStartMarking('pin')}
                 className="rounded-lg border-2 border-white/10 bg-white/5 p-6 hover:border-amber-500/50 hover:bg-amber-500/10 transition"
-                role="radio"
-                aria-checked={markingMethod === 'pin'}
                 aria-label="Code PIN: Entrez les codes PIN des étudiants"
               >
                 <Lock className="mx-auto mb-3 text-amber-300" size={32} />
@@ -318,7 +426,7 @@ export default function MarkAttendance() {
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="font-semibold text-lg">{currentSession?.subject}</p>
+                <p className="font-semibold text-lg">{currentSession?.title}</p>
                 <p className="text-white/60">
                   Méthode:{' '}
                   {markingMethod === 'qr'
@@ -342,9 +450,11 @@ export default function MarkAttendance() {
                 <p className="text-white/60 text-sm">Marqués</p>
               </div>
               <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-400 transition-all duration-300"
-                  style={{ width: `${attendanceRate}%` }}
+                <progress
+                  value={attendanceRate}
+                  max={100}
+                  className="h-2 w-full appearance-none [&::-webkit-progress-bar]:bg-white/10 [&::-webkit-progress-value]:bg-emerald-400 [&::-moz-progress-bar]:bg-emerald-400"
+                  aria-label="Progression du pointage"
                 />
               </div>
               <p className="text-white/60 text-sm">

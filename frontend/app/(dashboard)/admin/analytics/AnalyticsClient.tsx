@@ -2,11 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { TrendingUp, TrendingDown, Users, Calendar, BarChart3, Filter } from 'lucide-react';
-import { getApiBase } from '@/lib/config';
-
-const apiBase = getApiBase();
+import { apiClient } from '@/lib/api-client';
 
 type AttendanceData = {
   date: string;
@@ -30,49 +27,17 @@ export default function AnalyticsClient() {
   const { data: attendance = [] } = useQuery({
     queryKey: ['admin-analytics-attendance', dateRange],
     queryFn: async () => {
-      const res = await axios
-        .get(`${apiBase}/api/admin/analytics/attendance`, {
-          params: { range: dateRange },
-        })
-        .catch(() => ({
-          data: [
-            { date: '2025-01-10', present: 85, absent: 10, late: 5, total: 100 },
-            { date: '2025-01-11', present: 88, absent: 8, late: 4, total: 100 },
-            { date: '2025-01-12', present: 82, absent: 12, late: 6, total: 100 },
-            { date: '2025-01-13', present: 90, absent: 7, late: 3, total: 100 },
-            { date: '2025-01-14', present: 87, absent: 9, late: 4, total: 100 },
-          ],
-        }));
-      return res.data as AttendanceData[];
+      return apiClient<AttendanceData[]>('/api/admin/analytics/attendance', {
+        method: 'GET',
+        params: { range: dateRange },
+      });
     },
   });
 
   const { data: classes = [] } = useQuery({
     queryKey: ['admin-analytics-classes'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/admin/analytics/classes`).catch(() => ({
-        data: [
-          {
-            class_name: 'Développement Web I',
-            attendance_rate: 88.5,
-            total_students: 30,
-            avg_absences: 2.3,
-          },
-          {
-            class_name: 'Base de Données',
-            attendance_rate: 92.1,
-            total_students: 28,
-            avg_absences: 1.8,
-          },
-          {
-            class_name: 'Réseau & Sécurité',
-            attendance_rate: 85.2,
-            total_students: 25,
-            avg_absences: 2.9,
-          },
-        ],
-      }));
-      return res.data as ClassStats[];
+      return apiClient<ClassStats[]>('/api/admin/analytics/classes', { method: 'GET' });
     },
   });
 
@@ -125,6 +90,7 @@ export default function AnalyticsClient() {
         <select
           value={selectedClass}
           onChange={(e) => setSelectedClass(e.target.value)}
+          aria-label="Classe"
           className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
         >
           <option value="all">Toutes les classes</option>
@@ -228,23 +194,36 @@ export default function AnalyticsClient() {
                   </span>
                 </div>
                 <div className="flex h-6 rounded-lg overflow-hidden bg-white/5 dark:bg-white/5 light:bg-gray-200">
-                  <div
-                    style={{ width: `${presentPercent}%` }}
-                    className="bg-emerald-600 flex items-center justify-center text-xs text-white"
-                  >
-                    {presentPercent > 10 && `${presentPercent.toFixed(0)}%`}
-                  </div>
-                  <div
-                    style={{ width: `${latePercent}%` }}
-                    className="bg-amber-600 flex items-center justify-center text-xs text-white"
-                  >
-                    {latePercent > 5 && `${latePercent.toFixed(0)}%`}
-                  </div>
-                  <div
-                    style={{ width: `${absentPercent}%` }}
-                    className="bg-red-600 flex items-center justify-center text-xs text-white"
-                  >
-                    {absentPercent > 5 && `${absentPercent.toFixed(0)}%`}
+                  <div className="w-full space-y-1 py-1 px-2">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                      <span>Présent</span>
+                      <span>{presentPercent.toFixed(0)}%</span>
+                    </div>
+                    <progress
+                      className="w-full h-2 accent-emerald-600"
+                      value={Number.isFinite(presentPercent) ? presentPercent : 0}
+                      max={100}
+                    />
+
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                      <span>Retard</span>
+                      <span>{latePercent.toFixed(0)}%</span>
+                    </div>
+                    <progress
+                      className="w-full h-2 accent-amber-600"
+                      value={Number.isFinite(latePercent) ? latePercent : 0}
+                      max={100}
+                    />
+
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                      <span>Absent</span>
+                      <span>{absentPercent.toFixed(0)}%</span>
+                    </div>
+                    <progress
+                      className="w-full h-2 accent-red-600"
+                      value={Number.isFinite(absentPercent) ? absentPercent : 0}
+                      max={100}
+                    />
                   </div>
                 </div>
               </div>
@@ -296,16 +275,17 @@ export default function AnalyticsClient() {
                 </span>
               </div>
               <div className="h-2 rounded-full bg-white/5 dark:bg-white/5 light:bg-gray-200 overflow-hidden">
-                <div
-                  style={{ width: `${cls.attendance_rate}%` }}
-                  className={`h-full ${
+                <progress
+                  className={`w-full h-2 ${
                     cls.attendance_rate >= 90
-                      ? 'bg-emerald-600'
+                      ? 'accent-emerald-600'
                       : cls.attendance_rate >= 80
-                        ? 'bg-blue-600'
-                        : 'bg-red-600'
+                        ? 'accent-blue-600'
+                        : 'accent-red-600'
                   }`}
-                ></div>
+                  value={cls.attendance_rate}
+                  max={100}
+                />
               </div>
             </div>
           ))}

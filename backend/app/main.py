@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.router import api_router
+from app.core.audit_middleware import AuditMiddleware
 from app.core.config import get_settings
 from app.core.logging_config import get_logger, setup_logging
 from app.core.monitoring import RequestMetric, health_status, metrics_collector
@@ -34,6 +35,9 @@ app = FastAPI(
 
 # Response compression for bandwidth savings
 app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# Audit logging middleware for compliance
+app.add_middleware(AuditMiddleware)
 
 # CORS middleware
 app.add_middleware(
@@ -214,6 +218,11 @@ async def root() -> dict:
 async def on_startup():
     logger.info("Starting scheduler for recurring tasks")
     scheduler.start()
+    
+    # Initialize event subscribers
+    from app.core.event_subscribers import initialize_event_subscribers
+    await initialize_event_subscribers()
+    logger.info("Event bus subscribers initialized")
 
 
 @app.on_event("shutdown")

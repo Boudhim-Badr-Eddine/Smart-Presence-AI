@@ -21,6 +21,11 @@
   }
 }
 
+/* Utility classes used by components to avoid inline styles */
+.anim-delay-0 { animation-delay: 0ms; }
+.anim-delay-150 { animation-delay: 150ms; }
+.anim-delay-300 { animation-delay: 300ms; }
+
 @keyframes slideInRight {
   from {
     opacity: 0;

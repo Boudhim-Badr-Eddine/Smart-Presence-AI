@@ -15,6 +15,16 @@ NC='\033[0m'
 
 cd "$(dirname "$0")/.."
 
+# Detect docker compose (v2) or docker-compose (v1)
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+else
+    echo -e "${RED}❌ Docker Compose not installed${NC}" >&2
+    exit 1
+fi
+
 SERVICE="${1:-backend}"
 
 echo -e "${BLUE}🔓 Opening shell in: $SERVICE${NC}"
@@ -26,28 +36,28 @@ case "$SERVICE" in
         echo "Commands: python, pip, alembic, uvicorn, etc."
         echo "Type 'exit' to quit"
         echo ""
-        docker-compose exec backend bash
+        "${COMPOSE_CMD[@]}" exec backend bash
         ;;
     frontend)
         echo -e "${YELLOW}You are in the frontend container (Node.js/Next.js)${NC}"
         echo "Commands: npm, node, next, etc."
         echo "Type 'exit' to quit"
         echo ""
-        docker-compose exec frontend sh
+        "${COMPOSE_CMD[@]}" exec frontend sh
         ;;
     postgres)
         echo -e "${YELLOW}You are in psql (PostgreSQL client)${NC}"
         echo "Commands: SELECT, CREATE, etc."
         echo "Type '\\q' to quit"
         echo ""
-        docker-compose exec postgres psql -U postgres -d smartpresence
+        "${COMPOSE_CMD[@]}" exec postgres psql -U postgres -d smartpresence
         ;;
     redis)
         echo -e "${YELLOW}You are in redis-cli (Redis client)${NC}"
         echo "Commands: GET, SET, PING, etc."
         echo "Type 'exit' or 'quit' to quit"
         echo ""
-        docker-compose exec redis redis-cli
+        "${COMPOSE_CMD[@]}" exec redis redis-cli
         ;;
     *)
         echo -e "${RED}❌ Unknown service: $SERVICE${NC}"

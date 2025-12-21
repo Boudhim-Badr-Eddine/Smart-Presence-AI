@@ -92,7 +92,7 @@ def export_attendance_pdf(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Export attendance report as PDF (stub)."""
+    """Export attendance report as PDF."""
     if current_user.role not in ["admin", "trainer"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only admin/trainer can export reports"
@@ -112,7 +112,7 @@ def export_attendance_xlsx(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Export attendance report as Excel (stub)."""
+    """Export attendance report as Excel."""
     if current_user.role not in ["admin", "trainer"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only admin/trainer can export reports"

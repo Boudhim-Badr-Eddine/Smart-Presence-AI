@@ -12,6 +12,16 @@ NC='\033[0m'
 
 cd "$(dirname "$0")/.."
 
+# Detect docker compose (v2) or docker-compose (v1)
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+else
+    echo -e "${RED}❌ Docker Compose not installed${NC}" >&2
+    exit 1
+fi
+
 echo -e "${BLUE}🧪 Running Tests${NC}"
 echo ""
 
@@ -19,12 +29,12 @@ TEST_TARGET="${1:-all}"
 
 run_backend_tests() {
     echo -e "${YELLOW}Running backend tests (pytest)...${NC}"
-    docker-compose exec -T backend pytest -v --tb=short || return 1
+    "${COMPOSE_CMD[@]}" exec -T backend pytest -v --tb=short || return 1
 }
 
 run_frontend_tests() {
     echo -e "${YELLOW}Running frontend tests...${NC}"
-    docker-compose exec -T frontend npm test || return 1
+    "${COMPOSE_CMD[@]}" exec -T frontend npm test || return 1
 }
 
 case "$TEST_TARGET" in

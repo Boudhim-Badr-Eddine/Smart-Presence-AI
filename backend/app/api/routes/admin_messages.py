@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.schemas.admin_message import AdminMessageCreate, AdminMessageOut
+from app.schemas.admin_message import AdminMessageOut
 from app.services.admin_message import AdminMessageService
 from app.utils.deps import get_current_user, get_db
 
@@ -85,7 +85,15 @@ def list_distinct_classes(
         raise HTTPException(status_code=403, detail="Only admins can list classes")
 
     from app.models.session import Session as CourseSession
+    from app.models.student import Student
 
-    rows = db.query(CourseSession.class_name).distinct().all()
-    classes = sorted({r[0] for r in rows if r and r[0]})
+    session_rows = db.query(CourseSession.class_name).distinct().all()
+    student_rows = db.query(Student.class_name).distinct().all()
+    classes = sorted(
+        {
+            r[0]
+            for r in (session_rows + student_rows)
+            if r and r[0] and isinstance(r[0], str)
+        }
+    )
     return {"classes": classes}

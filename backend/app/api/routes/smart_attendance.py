@@ -1,27 +1,27 @@
 """Smart attendance API routes: self check-in, Teams integration, alerts."""
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
-from app.utils.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.smart_attendance import (
+    AttendanceAlertOut,
     AttendanceSessionCreate,
     AttendanceSessionOut,
     AttendanceSessionUpdate,
-    SelfCheckinCreate,
-    SelfCheckinOut,
-    TeamsParticipationOut,
-    AttendanceAlertOut,
     FraudDetectionOut,
     LiveAttendanceSnapshot,
+    SelfCheckinOut,
+    TeamsParticipationOut,
 )
 from app.services.self_checkin import SelfCheckinService
-from app.services.teams_integration import TeamsIntegrationService
 from app.services.smart_alerts import SmartAlertsService
+from app.services.teams_integration import TeamsIntegrationService
+from app.utils.deps import get_current_user, get_db
 
-router = APIRouter(prefix="/api/smart-attendance", tags=["smart-attendance"])
+router = APIRouter(prefix="/smart-attendance", tags=["smart-attendance"])
 
 
 @router.post("/sessions", response_model=AttendanceSessionOut, status_code=201)
@@ -38,10 +38,9 @@ async def create_attendance_session(
     if current_user.role not in ["trainer", "admin"]:
         raise HTTPException(status_code=403, detail="Only trainers and admins can create attendance sessions")
     
-    from app.models.smart_attendance import AttendanceSession
-    
     # Verify the session exists
     from app.models.session import Session as SessionModel
+    from app.models.smart_attendance import AttendanceSession
     session = db.query(SessionModel).filter(SessionModel.id == session_data.session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -54,7 +53,17 @@ async def create_attendance_session(
         raise HTTPException(status_code=400, detail="Attendance session already exists for this session")
     
     # Create attendance session
-    attendance_session = AttendanceSession(**session_data.dict())
+    attendance_session = AttendanceSession(
+        session_id=session_data.session_id,
+        mode=session_data.mode,
+        checkin_window_minutes=session_data.checkin_window_minutes,
+        location_verification_enabled=session_data.location_verification_enabled,
+        classroom_lat=session_data.classroom_lat,
+        classroom_lng=session_data.classroom_lng,
+        allowed_radius_meters=session_data.allowed_radius_meters,
+        teams_meeting_id=session_data.teams_meeting_id,
+        teams_meeting_url=session_data.teams_meeting_url,
+    )
     db.add(attendance_session)
     db.commit()
     db.refresh(attendance_session)
@@ -102,7 +111,7 @@ async def update_attendance_session(
         raise HTTPException(status_code=404, detail="Attendance session not found")
     
     # Update fields
-    for field, value in session_data.dict(exclude_unset=True).items():
+    for field, value in session_data.model_dump(exclude_unset=True).items():
         setattr(attendance_session, field, value)
     
     db.commit()
@@ -118,9 +127,9 @@ async def student_self_checkin(
     current_user: User = Depends(get_current_user),
     session_id: int = Query(..., description="Session ID to check in to"),
     photo: UploadFile = File(..., description="Selfie for facial verification"),
-    latitude: Optional[float] = Query(None, description="Student's current latitude"),
-    longitude: Optional[float] = Query(None, description="Student's current longitude"),
-    device_id: Optional[str] = Query(None, description="Device identifier"),
+    latitude: Optional[float] = Form(None, description="Student's current latitude"),
+    longitude: Optional[float] = Form(None, description="Student's current longitude"),
+    device_id: Optional[str] = Form(None, description="Device identifier"),
 ) -> SelfCheckinOut:
     """
     Student self check-in with AI verification.
@@ -170,8 +179,13 @@ async def get_live_attendance(
     if current_user.role not in ["trainer", "admin"]:
         raise HTTPException(status_code=403, detail="Only trainers and admins can view live attendance")
     
-    from app.models.smart_attendance import AttendanceSession, SelfCheckin, TeamsParticipation, FraudDetection
     from app.models.session import Session as SessionModel
+    from app.models.smart_attendance import (
+        AttendanceSession,
+        FraudDetection,
+        SelfCheckin,
+        TeamsParticipation,
+    )
     
     # Get session info
     session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
@@ -293,8 +307,9 @@ async def resolve_fraud_detection(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can resolve fraud detections")
     
-    from app.models.smart_attendance import FraudDetection
     from datetime import datetime
+
+    from app.models.smart_attendance import FraudDetection
     
     fraud = db.query(FraudDetection).filter(FraudDetection.id == fraud_id).first()
     if not fraud:
@@ -326,10 +341,8 @@ async def sync_teams_meeting(
     
     service = TeamsIntegrationService(db)
     
-    # TODO: Implement actual Graph API call to fetch participants
-    # For now, return a placeholder response
-    return {
-        "message": "Teams sync initiated",
-        "meeting_id": meeting_id,
-        "note": "Microsoft Graph API integration required - see docs/TEAMS_SETUP.md"
-    }
+    # Graph API integration is not implemented yet.
+    raise HTTPException(
+        status_code=501,
+        detail="Teams sync not implemented yet (Microsoft Graph integration required)",
+    )

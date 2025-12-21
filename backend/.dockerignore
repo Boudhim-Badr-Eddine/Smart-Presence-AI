@@ -1,0 +1,31 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local artifacts
+logs/
+metrics/
+storage/
+uploads/
+
+# Git
+.git/
+.gitignore
+
+# Docs and reports not needed in image
+FINAL_*.md
+IMPLEMENTATION_*.md
+PHASE_*.md
+SCRIPTS_TEST_REPORT.md
+SMART_ATTENDANCE_IMPLEMENTATION.md
+
+# OS/editor
+.DS_Store
+.vscode/

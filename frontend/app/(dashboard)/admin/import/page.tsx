@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getApiBase } from '@/lib/config';
 import { getWebSocketManager } from '@/lib/websocket';
 import OnboardingTour from '@/components/OnboardingTour';
+import { apiClient } from '@/lib/api-client';
 
 export default function AdminImportPage() {
   const [dragActive, setDragActive] = useState(false);
@@ -41,11 +42,11 @@ export default function AdminImportPage() {
 
   const handleTemplateDownload = async (target: typeof entity) => {
     try {
-      const res = await fetch(`${apiBase}/api/admin/import/template?entity=${target}`, {
+      const blob = await apiClient<Blob>(`/api/admin/import/template?entity=${encodeURIComponent(target)}`, {
+        method: 'GET',
         headers: authHeaders as Record<string, string>,
+        responseType: 'blob',
       });
-      if (!res.ok) throw new Error('Download failed');
-      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -64,17 +65,12 @@ export default function AdminImportPage() {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      const res = await fetch(`${apiBase}/api/admin/import?entity=${entity}`, {
+
+      const result = await apiClient<any>(`/api/admin/import?entity=${encodeURIComponent(entity)}`, {
         method: 'POST',
         headers: authHeaders as Record<string, string>,
-        body: formData,
+        data: formData,
       });
-
-      if (!res.ok) {
-        throw new Error(`Import échoué (${res.status})`);
-      }
-
-      const result = await res.json().catch(() => ({ success: 0, errors: 0 }));
       setImportStatus({ success: result.success ?? 0, errors: result.errors ?? 0 });
       setSelectedFile(null);
       setProgress(100);
@@ -161,6 +157,8 @@ export default function AdminImportPage() {
               <select
                 value={entity}
                 onChange={(e) => setEntity(e.target.value as typeof entity)}
+                aria-label="Type de données"
+                title="Type de données"
                 className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white light:text-gray-900"
               >
                 <option value="students">Étudiants</option>
@@ -181,6 +179,8 @@ export default function AdminImportPage() {
                 type="file"
                 accept=".csv,.xlsx,.xls"
                 onChange={(e) => e.target.files && setSelectedFile(e.target.files[0])}
+                aria-label="Fichier à importer"
+                title="Fichier à importer"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <Upload className="h-8 w-8 mx-auto text-zinc-400 dark:text-zinc-400 light:text-gray-400 mb-2" />

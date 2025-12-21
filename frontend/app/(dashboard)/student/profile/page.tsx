@@ -1,11 +1,13 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import RoleGuard from '@/components/auth/RoleGuard';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const ProfileClient = dynamic(() => import('./ProfileClient'), {
+const ProfileClient = nextDynamic(() => import('./ProfileClient'), {
   loading: () => (
     <div className="space-y-4">
       <Skeleton className="h-32 w-full" />

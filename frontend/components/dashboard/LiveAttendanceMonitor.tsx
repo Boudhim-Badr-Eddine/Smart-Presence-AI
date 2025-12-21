@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, Users, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 
 interface SelfCheckin {
   id: number;
@@ -64,43 +65,42 @@ export default function LiveAttendanceMonitor({
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Fetch live attendance data
-  const fetchLiveData = async () => {
+  const fetchLiveData = useCallback(async () => {
     try {
       setError(null);
 
-      const snapshotRes = await fetch(`/api/smart-attendance/sessions/${sessionId}/live`);
-      if (!snapshotRes.ok) throw new Error('Failed to fetch attendance snapshot');
-      const snapshotData = await snapshotRes.json();
+      const snapshotData = await apiClient<LiveAttendanceSnapshot>(
+        `/api/smart-attendance/sessions/${encodeURIComponent(sessionId.toString())}/live`,
+        { method: 'GET' },
+      );
       setSnapshot(snapshotData);
 
-      const alertsRes = await fetch('/api/smart-attendance/alerts?unacknowledged_only=true');
-      if (!alertsRes.ok) throw new Error('Failed to fetch alerts');
-      const alertsData = await alertsRes.json();
-      setAlerts(alertsData);
+      const alertsData = await apiClient<AttendanceAlert[]>(
+        '/api/smart-attendance/alerts?unacknowledged_only=true',
+        { method: 'GET' },
+      );
+      setAlerts(Array.isArray(alertsData) ? alertsData : []);
 
       setLastRefresh(new Date());
       setIsLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
     }
-  };
+  }, [sessionId]);
 
   // Auto-refresh
   useEffect(() => {
     fetchLiveData();
     const interval = setInterval(fetchLiveData, refreshInterval);
     return () => clearInterval(interval);
-  }, [sessionId, refreshInterval]);
+  }, [fetchLiveData, refreshInterval]);
 
   const handleAcknowledgeAlert = async (alertId: number) => {
     try {
-      const response = await fetch(`/api/smart-attendance/alerts/${alertId}/acknowledge`, {
+      await apiClient(`/api/smart-attendance/alerts/${encodeURIComponent(alertId.toString())}/acknowledge`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_taken: 'Reviewed by trainer' }),
+        data: { action_taken: 'Reviewed by trainer' },
       });
-
-      if (!response.ok) throw new Error('Failed to acknowledge alert');
       
       // Refresh alerts
       setAlerts(alerts.filter(a => a.id !== alertId));

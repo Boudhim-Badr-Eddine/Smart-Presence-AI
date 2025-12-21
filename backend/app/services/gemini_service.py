@@ -4,6 +4,7 @@ Integrates Google's Gemini 2.0 Flash model with application context.
 """
 
 import google.generativeai as genai
+
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -180,7 +181,7 @@ class GeminiService:
             except json.JSONDecodeError:
                 return {"intent": "general", "category": "general", "confidence": 0.5}
 
-        except Exception as e:
+        except Exception:
             return {"intent": "error", "category": "error", "confidence": 0.0}
 
     def clear_history(self):

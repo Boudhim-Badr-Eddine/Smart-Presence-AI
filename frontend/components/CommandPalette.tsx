@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiBase } from '@/lib/config';
+import { useAuth } from '@/lib/auth-context';
 
 type CommandItem = {
   id: string;
@@ -41,6 +42,7 @@ export default function CommandPalette() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const apiBase = getApiBase();
+  const { user, logout } = useAuth();
 
   // Keyboard shortcut
   useEffect(() => {
@@ -58,86 +60,134 @@ export default function CommandPalette() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const commands: CommandItem[] = useMemo(
-    () => [
-      {
-        id: 'nav-trainers',
-        label: 'Formateurs',
-        icon: <Users className="h-4 w-4" />,
-        action: () => router.push('/admin/trainers'),
-        keywords: ['trainers', 'formateurs', 'teachers'],
-        category: 'Navigation',
-      },
-      {
-        id: 'nav-students',
-        label: 'Étudiants',
-        icon: <GraduationCap className="h-4 w-4" />,
-        action: () => router.push('/admin/students'),
-        keywords: ['students', 'étudiants', 'pupils'],
-        category: 'Navigation',
-      },
-      {
-        id: 'nav-faces',
-        label: 'Enrôlement facial',
-        icon: <Camera className="h-4 w-4" />,
-        action: () => router.push('/admin/faces'),
-        keywords: ['faces', 'facial', 'biometric', 'enroll'],
-        category: 'Navigation',
-      },
-      {
-        id: 'nav-users',
-        label: 'Créer un utilisateur',
-        icon: <Users className="h-4 w-4" />,
-        action: () => router.push('/admin/users'),
-        keywords: ['users', 'create', 'account'],
-        category: 'Navigation',
-      },
-      {
-        id: 'nav-sessions',
-        label: 'Sessions',
-        icon: <Calendar className="h-4 w-4" />,
-        action: () => router.push('/admin/sessions'),
-        keywords: ['sessions', 'classes', 'schedule'],
-        category: 'Navigation',
-      },
-      {
-        id: 'nav-analytics',
-        label: 'Analytique',
-        icon: <BarChart3 className="h-4 w-4" />,
-        action: () => router.push('/admin/analytics'),
-        keywords: ['analytics', 'stats', 'reports'],
-        category: 'Navigation',
-      },
-      {
-        id: 'nav-assistant',
-        label: 'Assistant IA',
-        icon: <MessageSquare className="h-4 w-4" />,
-        action: () => router.push('/assistant'),
-        keywords: ['assistant', 'chatbot', 'ai', 'help'],
-        category: 'Outils',
-      },
-      {
-        id: 'nav-notifications',
-        label: 'Notifications',
-        icon: <Bell className="h-4 w-4" />,
-        action: () => router.push('/admin/notifications'),
-        keywords: ['notifications', 'alerts'],
-        category: 'Navigation',
-      },
-      {
-        id: 'action-logout',
-        label: 'Se déconnecter',
-        icon: <LogOut className="h-4 w-4" />,
-        action: () => {
-          localStorage.removeItem('spa_access_token');
-          router.push('/auth/login');
+  const commands: CommandItem[] = useMemo(() => {
+    const role = user?.role;
+    const items: CommandItem[] = [];
+
+    // Common
+    items.push({
+      id: 'nav-assistant',
+      label: 'Assistant IA',
+      icon: <MessageSquare className="h-4 w-4" />,
+      action: () => router.push('/assistant'),
+      keywords: ['assistant', 'chatbot', 'ai', 'help'],
+      category: 'Outils',
+    });
+
+    if (role === 'admin') {
+      items.push(
+        {
+          id: 'nav-trainers',
+          label: 'Formateurs',
+          icon: <Users className="h-4 w-4" />,
+          action: () => router.push('/admin/trainers'),
+          keywords: ['trainers', 'formateurs', 'teachers'],
+          category: 'Navigation',
         },
-        keywords: ['logout', 'sign out', 'disconnect'],
-        category: 'Actions',
-      },
-    ],
-    [router],
-  );
+        {
+          id: 'nav-students',
+          label: 'Étudiants',
+          icon: <GraduationCap className="h-4 w-4" />,
+          action: () => router.push('/admin/students'),
+          keywords: ['students', 'étudiants', 'pupils'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-faces',
+          label: 'Enrôlement facial',
+          icon: <Camera className="h-4 w-4" />,
+          action: () => router.push('/admin/faces'),
+          keywords: ['faces', 'facial', 'biometric', 'enroll'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-users',
+          label: 'Créer un utilisateur',
+          icon: <Users className="h-4 w-4" />,
+          action: () => router.push('/admin/users'),
+          keywords: ['users', 'create', 'account'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-sessions',
+          label: 'Sessions',
+          icon: <Calendar className="h-4 w-4" />,
+          action: () => router.push('/admin/sessions'),
+          keywords: ['sessions', 'classes', 'schedule'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-analytics',
+          label: 'Analytique',
+          icon: <BarChart3 className="h-4 w-4" />,
+          action: () => router.push('/admin/analytics'),
+          keywords: ['analytics', 'stats', 'reports'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-notifications',
+          label: 'Notifications',
+          icon: <Bell className="h-4 w-4" />,
+          action: () => router.push('/admin/notifications'),
+          keywords: ['notifications', 'alerts'],
+          category: 'Navigation',
+        },
+      );
+    }
+
+    if (role === 'trainer') {
+      items.push(
+        {
+          id: 'nav-trainer-sessions',
+          label: 'Mes sessions',
+          icon: <Calendar className="h-4 w-4" />,
+          action: () => router.push('/trainer/sessions'),
+          keywords: ['sessions', 'cours'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-trainer-attendance',
+          label: 'Présences',
+          icon: <FileText className="h-4 w-4" />,
+          action: () => router.push('/trainer/attendance'),
+          keywords: ['attendance', 'présences'],
+          category: 'Navigation',
+        },
+      );
+    }
+
+    if (role === 'student') {
+      items.push(
+        {
+          id: 'nav-student-schedule',
+          label: 'Emploi du temps',
+          icon: <Calendar className="h-4 w-4" />,
+          action: () => router.push('/student/schedule'),
+          keywords: ['schedule', 'emploi du temps'],
+          category: 'Navigation',
+        },
+        {
+          id: 'nav-student-attendance',
+          label: 'Mes présences',
+          icon: <FileText className="h-4 w-4" />,
+          action: () => router.push('/student/attendance'),
+          keywords: ['attendance', 'présences'],
+          category: 'Navigation',
+        },
+      );
+    }
+
+    items.push({
+      id: 'action-logout',
+      label: 'Se déconnecter',
+      icon: <LogOut className="h-4 w-4" />,
+      action: () => logout(),
+      keywords: ['logout', 'sign out', 'disconnect'],
+      category: 'Actions',
+    });
+
+    return items;
+  }, [logout, router, user?.role]);
 
   const filteredCommands = useMemo(() => {
     if (!search) return [...commands, ...remoteResults];
@@ -152,6 +202,11 @@ export default function CommandPalette() {
 
   const fetchRemote = useCallback(
     async (term: string) => {
+      // Remote search is admin-only.
+      if (user?.role !== 'admin') {
+        setRemoteResults([]);
+        return;
+      }
       if (!term || term.length < 2) {
         setRemoteResults([]);
         return;
@@ -180,7 +235,7 @@ export default function CommandPalette() {
         setLoading(false);
       }
     },
-    [apiBase, router],
+    [apiBase, router, user?.role],
   );
 
   // Debounce remote search

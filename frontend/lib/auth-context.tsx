@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiBase } from './config';
+import { apiClient } from './api-client';
 
 type UserRole = 'admin' | 'trainer' | 'student';
 
@@ -19,6 +20,7 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithToken: (accessToken: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -35,6 +37,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const normalizeRole = useCallback((value: unknown): UserRole | null => {
+    if (typeof value !== 'string') return null;
+    const role = value.trim().toLowerCase();
+    if (role === 'admin' || role === 'administrator' || role === 'superadmin') return 'admin';
+    if (role === 'trainer' || role === 'teacher' || role === 'instructor') return 'trainer';
+    if (role === 'student' || role === 'learner') return 'student';
+    return null;
+  }, []);
+
+  const normalizeUser = useCallback(
+    (raw: any): User => {
+      const role = normalizeRole(raw?.role) ?? 'student';
+      return {
+        id: Number(raw?.id ?? 0),
+        email: String(raw?.email ?? ''),
+        role,
+        last_login: raw?.last_login ?? null,
+      };
+    },
+    [normalizeRole],
+  );
+
   const clearAuth = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -43,28 +67,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const verifyToken = useCallback(
-    async (authToken: string) => {
+    async (authToken: string): Promise<User | null> => {
       try {
-        const res = await fetch(`${apiUrl}/api/auth/me`, {
+        const userData = await apiClient<any>('/api/auth/me', {
+          method: 'GET',
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
         });
-
-        if (!res.ok) {
-          clearAuth();
-          return;
-        }
-
-        const userData = await res.json();
-        setUser(userData);
-        localStorage.setItem(USER_KEY, JSON.stringify(userData));
+        const normalized = normalizeUser(userData);
+        setUser(normalized);
+        localStorage.setItem(USER_KEY, JSON.stringify(normalized));
+        return normalized;
       } catch (error) {
         console.error('Token verification failed:', error);
         clearAuth();
+        return null;
       }
     },
-    [clearAuth],
+    [clearAuth, normalizeUser],
   );
 
   // Load auth state from localStorage on mount
@@ -74,10 +95,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedToken = localStorage.getItem(TOKEN_KEY);
         const storedUser = localStorage.getItem(USER_KEY);
 
-        if (storedToken && storedUser) {
-          const parsedUser = JSON.parse(storedUser) as User;
+        if (storedToken) {
           setToken(storedToken);
-          setUser(parsedUser);
+          if (storedUser) {
+            try {
+              const parsedUser = normalizeUser(JSON.parse(storedUser));
+              setUser(parsedUser);
+            } catch {
+              // ignore parse error and re-verify token
+            }
+          }
           await verifyToken(storedToken);
         }
       } catch (error) {
@@ -89,53 +116,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     loadAuth();
-  }, [verifyToken, clearAuth]);
+  }, [verifyToken, clearAuth, normalizeUser]);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  const loginWithToken = useCallback(
+    async (accessToken: string) => {
+      if (!accessToken) throw new Error('Missing access token');
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: 'Login failed' }));
-        throw new Error(error.message || 'Invalid credentials');
-      }
-
-      const data = await res.json();
-      const accessToken = data.access_token;
-
-      // Fetch user data
-      const userRes = await fetch(`${apiUrl}/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!userRes.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const userData = await userRes.json();
-
-      // Store auth state
       localStorage.setItem(TOKEN_KEY, accessToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
       setToken(accessToken);
-      setUser(userData);
 
-      // Role-based redirect
+      const userData = await verifyToken(accessToken);
+      if (!userData) throw new Error('Login failed');
+
       const roleRoutes: Record<UserRole, string> = {
         admin: '/admin',
         trainer: '/trainer',
         student: '/student',
       };
 
-      router.push(roleRoutes[userData.role as UserRole] || '/');
+      router.push(roleRoutes[userData.role] || '/');
+    },
+    [router, verifyToken],
+  );
+
+  const login = async (email: string, password: string) => {
+    try {
+      const data = await apiClient<{ access_token: string }>('/api/auth/login', {
+        method: 'POST',
+        data: { email, password },
+      });
+
+      const accessToken = data.access_token;
+      if (!accessToken) {
+        throw new Error('Login failed');
+      }
+
+      await loginWithToken(accessToken);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -159,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isLoading,
         login,
+        loginWithToken,
         logout,
         refreshUser,
       }}

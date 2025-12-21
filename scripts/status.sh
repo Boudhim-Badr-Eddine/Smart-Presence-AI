@@ -27,47 +27,86 @@ echo ""
 echo -e "${YELLOW}🐳 Container Status:${NC}"
 # Detect compose command (v2 preferred)
 if docker compose version >/dev/null 2>&1; then COMPOSE_CMD=(docker compose); else COMPOSE_CMD=(docker-compose); fi
-if "${COMPOSE_CMD[@]}" ps 2>/dev/null | grep -q "smartpresence"; then
-  "${COMPOSE_CMD[@]}" ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || log_error "Failed to get container status"
-else
+
+if ! "${COMPOSE_CMD[@]}" ps 2>/dev/null | grep -q -E "postgres|redis|backend|frontend"; then
   log_warn "No containers running"
   echo "   Run: ./scripts/start.sh"
   echo ""
   exit 0
 fi
 
+# docker-compose v1 doesn't support --format, so keep this portable.
+"${COMPOSE_CMD[@]}" ps 2>/dev/null || log_error "Failed to get container status"
+
 echo ""
 
 # Port availability with enhanced checks
 echo -e "${YELLOW}🔌 Port Availability:${NC}"
 
-check_port() {
-  local port=$1
-  local service=$2
-  
-  if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "   ${GREEN}✓${NC} Port $port ($service)"
-    return 0
-  else
-    echo -e "   ${RED}✗${NC} Port $port ($service)"
+get_host_port() {
+  local service=$1
+  local internal_port=$2
+  local container
+  container=$(${COMPOSE_CMD[@]} ps -q "$service" 2>/dev/null | head -n 1)
+  if [ -z "$container" ]; then
     return 1
   fi
+
+  local mapping
+  mapping=$(docker port "$container" "${internal_port}/tcp" 2>/dev/null | head -n 1)
+  if [ -z "$mapping" ]; then
+    return 1
+  fi
+
+  # mapping examples: 0.0.0.0:3000 or :::3000
+  echo "$mapping" | awk -F: '{print $NF}'
+  return 0
 }
 
-check_port 3000 "Frontend"
-check_port 8000 "Backend API"
-check_port 5432 "PostgreSQL"
-check_port 6379 "Redis"
+check_port_mapping() {
+  local service=$1
+  local internal_port=$2
+  local label=$3
+  local container
+  container=$(${COMPOSE_CMD[@]} ps -q "$service" 2>/dev/null | head -n 1)
+  if [ -z "$container" ]; then
+    echo -e "   ${RED}✗${NC} ${label}: container not found"
+    return 1
+  fi
+
+  local mapping
+  mapping=$(docker port "$container" "${internal_port}/tcp" 2>/dev/null | head -n 1)
+
+  if [ -n "$mapping" ]; then
+    echo -e "   ${GREEN}✓${NC} ${label}: $mapping"
+    return 0
+  fi
+
+  echo -e "   ${RED}✗${NC} ${label}: not published"
+  return 1
+}
+
+check_port_mapping frontend 3000 "Frontend"
+check_port_mapping backend 8000 "Backend API"
+check_port_mapping postgres 5432 "PostgreSQL"
+check_port_mapping redis 6379 "Redis"
 
 echo ""
 
 # Service health check with detailed diagnostics
 echo -e "${YELLOW}🏥 Service Health:${NC}"
 
+FRONTEND_OK=0
+BACKEND_OK=0
+POSTGRES_OK=0
+REDIS_OK=0
+
 # Frontend
 echo -n "   Frontend (3000): "
-if curl -s -m 2 http://localhost:3000 > /dev/null 2>&1; then
+FRONTEND_PORT=$(get_host_port frontend 3000 || true)
+if [ -n "$FRONTEND_PORT" ] && (curl -s -m 5 "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1 || curl -s -m 5 "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1); then
   log_success "Responding"
+  FRONTEND_OK=1
 else
   log_error "Not responding"
   log_warn "   → Check: ./scripts/logs.sh frontend"
@@ -75,8 +114,10 @@ fi
 
 # Backend API
 echo -n "   Backend (8000): "
-if curl -s -m 2 http://localhost:8000/docs > /dev/null 2>&1; then
+BACKEND_PORT=$(get_host_port backend 8000 || true)
+if [ -n "$BACKEND_PORT" ] && curl -s -m 2 "http://localhost:${BACKEND_PORT}/docs" > /dev/null 2>&1; then
   log_success "API responding"
+  BACKEND_OK=1
 else
   log_error "API not responding"
   log_warn "   → Check: ./scripts/logs.sh backend"
@@ -87,6 +128,7 @@ echo -n "   PostgreSQL (5432): "
 if "${COMPOSE_CMD[@]}" exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
   TABLES=$("${COMPOSE_CMD[@]}" exec -T postgres psql -U postgres -d smartpresence -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo "?")
   log_success "Connected ($TABLES tables)"
+  POSTGRES_OK=1
 else
   log_error "Not responding"
   log_warn "   → Check: docker-compose logs postgres"
@@ -97,6 +139,7 @@ echo -n "   Redis (6379): "
 if "${COMPOSE_CMD[@]}" exec -T redis redis-cli ping > /dev/null 2>&1; then
   INFO=$("${COMPOSE_CMD[@]}" exec -T redis redis-cli info 2>/dev/null | grep "used_memory_human" | cut -d: -f2 | tr -d '\r')
   log_success "Connected (${INFO:-?} used)"
+  REDIS_OK=1
 else
   log_error "Not responding"
   log_warn "   → Check: docker-compose logs redis"
@@ -107,23 +150,38 @@ echo ""
 # System diagnostics
 echo -e "${YELLOW}📊 System Diagnostics:${NC}"
 
-# Disk usage
-DISK=$(docker system df 2>/dev/null | tail -1 | awk '{print $4}')
-echo "   Disk Usage: $DISK"
+# Disk usage (robust)
+if docker system df --format '{{.Type}}: {{.Size}} (reclaimable {{.Reclaimable}})' >/dev/null 2>&1; then
+  echo "   Docker Disk Usage:"
+  docker system df --format '     - {{.Type}}: {{.Size}} (reclaimable {{.Reclaimable}})'
+else
+  echo "   Docker Disk Usage:"
+  docker system df 2>/dev/null | sed -n '1,6p' | sed 's/^/     /'
+fi
 
 # Container count
-COUNT=$("${COMPOSE_CMD[@]}" ps -q 2>/dev/null | wc -l)
-echo "   Running Containers: $COUNT/4"
+RUNNING=0
+for svc in postgres redis backend frontend; do
+  cid=$(${COMPOSE_CMD[@]} ps -q "$svc" 2>/dev/null | head -n 1)
+  if [ -n "$cid" ] && docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null | grep -q true; then
+    RUNNING=$((RUNNING + 1))
+  fi
+done
+echo "   Running Containers: $RUNNING/4"
 
 # Overall status
 echo ""
-if [ "$COUNT" -eq 4 ]; then
+if [ "$RUNNING" -ne 4 ]; then
+  if [ "$RUNNING" -gt 0 ]; then
+    log_warn "Partial startup - $((4 - RUNNING)) service(s) missing"
+  else
+    log_error "No services running"
+    echo "   Run: ./scripts/start.sh"
+  fi
+elif [ "$FRONTEND_OK" -eq 1 ] && [ "$BACKEND_OK" -eq 1 ] && [ "$POSTGRES_OK" -eq 1 ] && [ "$REDIS_OK" -eq 1 ]; then
   log_success "All services online"
-elif [ "$COUNT" -gt 0 ]; then
-  log_warn "Partial startup - $((4 - COUNT)) service(s) missing"
 else
-  log_error "No services running"
-  echo "   Run: ./scripts/start.sh"
+  log_warn "Containers up, but one or more health checks failed"
 fi
 
 echo ""

@@ -178,3 +178,6 @@ db_logger = get_logger("database")
 auth_logger = get_logger("auth")
 facial_logger = get_logger("facial")
 notification_logger = get_logger("notifications")
+
+# Backward-compatible alias used throughout the codebase.
+logger = app_logger

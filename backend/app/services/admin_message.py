@@ -16,7 +16,6 @@ from app.models.notification import Notification
 from app.models.session import Session as CourseSession
 from app.models.trainer import Trainer
 
-
 settings = get_settings()
 
 

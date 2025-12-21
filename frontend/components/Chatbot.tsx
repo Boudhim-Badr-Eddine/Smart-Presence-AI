@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Check, Sparkles } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 
 type ChatMessage = {
   id: string;
@@ -17,23 +18,12 @@ function nowId() {
 }
 
 async function sendToApi(text: string, signal: AbortSignal): Promise<string | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  const token = typeof window !== 'undefined' ? localStorage.getItem('spa_access_token') : null;
-
   try {
-    const res = await fetch(`${apiUrl}/api/chatbot/ask`, {
+    const data = await apiClient<any>('/api/chatbot/ask', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ question: text }),
+      data: { question: text },
       signal,
     });
-
-    if (!res.ok) return null;
-
-    const data = await res.json().catch(() => ({} as any));
     const candidate: string | undefined =
       data.response || data.reply || data.answer || data.message || data.content;
     if (candidate && typeof candidate === 'string') return candidate;
@@ -44,8 +34,7 @@ async function sendToApi(text: string, signal: AbortSignal): Promise<string | nu
       if (typeof last?.content === 'string') return last.content;
     }
 
-    const raw = await res.text();
-    if (raw && raw !== '' && raw !== 'null') return raw;
+    if (typeof data === 'string' && data && data !== 'null') return data;
   } catch (e) {
     // Network or auth error -> null triggers fallback
   }
@@ -83,10 +72,9 @@ export default function Chatbot() {
   useEffect(() => {
     const ctrl = new AbortController();
     const run = async () => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       try {
-        const res = await fetch(`${apiUrl}/health`, { signal: ctrl.signal });
-        setApiAvailable(res.ok);
+        await apiClient('/health', { method: 'GET', signal: ctrl.signal, headers: {} });
+        setApiAvailable(true);
       } catch {
         setApiAvailable(false);
       }
@@ -246,16 +234,13 @@ export default function Chatbot() {
           <div className="mr-auto flex max-w-[70%] items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2 text-zinc-300">
             <div className="flex gap-1">
               <span
-                className="h-2 w-2 animate-bounce rounded-full bg-amber-400"
-                style={{ animationDelay: '0ms' }}
+                className="h-2 w-2 animate-bounce rounded-full bg-amber-400 anim-delay-0"
               />
               <span
-                className="h-2 w-2 animate-bounce rounded-full bg-amber-400"
-                style={{ animationDelay: '150ms' }}
+                className="h-2 w-2 animate-bounce rounded-full bg-amber-400 anim-delay-150"
               />
               <span
-                className="h-2 w-2 animate-bounce rounded-full bg-amber-400"
-                style={{ animationDelay: '300ms' }}
+                className="h-2 w-2 animate-bounce rounded-full bg-amber-400 anim-delay-300"
               />
             </div>
             <span className="text-sm">L'assistant écrit…</span>

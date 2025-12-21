@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight, Bell, Bot, ChartBar, Shield, Users } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-16">

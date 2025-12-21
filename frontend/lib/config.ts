@@ -14,11 +14,19 @@
  * Default: http://localhost:8000
  */
 export function getApiBase(): string {
-  return (
+  const raw =
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    'http://localhost:8000'
-  );
+    'http://localhost:8000';
+
+  // Many older configs set NEXT_PUBLIC_API_URL to something like
+  // `http://localhost:8000/api`, but the codebase consistently appends `/api/...`.
+  // Normalize to a host base (no trailing `/api`) to prevent `/api/api/...`.
+  let base = String(raw).trim();
+  base = base.replace(/\/+$/, '');
+  base = base.replace(/\/api$/, '');
+  base = base.replace(/\/+$/, '');
+  return base;
 }
 
 /**

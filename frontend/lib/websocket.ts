@@ -10,7 +10,7 @@ type ConnectionHandler = () => void;
 export class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 1; // disable repeated retries until backend WS is available
   private reconnectDelay = 1000;
   private handlers: Map<string, Set<MessageHandler>> = new Map();
   private onConnectHandlers: Set<ConnectionHandler> = new Set();
@@ -20,7 +20,17 @@ export class WebSocketManager {
   constructor(private path: string = '/ws') {}
 
   connect() {
+    const wsEnabled = process.env.NEXT_PUBLIC_WS_ENABLED === 'true';
+    if (!wsEnabled) {
+      return; // Skip WebSocket when backend endpoint is not available
+    }
+
     if (this.ws?.readyState === WebSocket.OPEN) return;
+    // Stop if we've already exhausted attempts
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.isIntentionallyClosed = true;
+      return;
+    }
 
     this.isIntentionallyClosed = false;
     const wsUrl = getApiBase().replace('http', 'ws') + this.path;
@@ -56,19 +66,17 @@ export class WebSocketManager {
 
       this.ws.onerror = (error) => {
         console.error('[WS] Error:', error);
+        // Do not keep retrying when backend WS endpoint is unavailable
+        this.isIntentionallyClosed = true;
       };
 
       this.ws.onclose = () => {
         console.log('[WS] Disconnected');
         this.onDisconnectHandlers.forEach((handler) => handler());
 
-        if (!this.isIntentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++;
-          const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-          console.log(
-            `[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
-          );
-          setTimeout(() => this.connect(), delay);
+        if (!this.isIntentionallyClosed) {
+          this.reconnectAttempts = this.maxReconnectAttempts;
+          console.warn('[WS] WebSocket endpoint unavailable; stopping retries.');
         }
       };
     } catch (error) {

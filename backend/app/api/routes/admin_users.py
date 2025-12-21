@@ -89,7 +89,12 @@ async def create_user(
         db.refresh(student)
 
     # Handle multiple face images if provided: save to disk for enrollment pipeline
-    if request.imagesBase64 and len(request.imagesBase64) >= 1:
+    if request.imagesBase64 is not None:
+        if len(request.imagesBase64) < 3:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Provide at least 3 face images",
+            )
         try:
             import base64
             import os
@@ -106,23 +111,32 @@ async def create_user(
             image_paths_and_bytes = []
             for idx, img in enumerate(request.imagesBase64):
                 face_data = img.split(",", 1)[1] if "," in img else img
-                image_bytes = base64.b64decode(face_data)
+                try:
+                    image_bytes = base64.b64decode(face_data)
+                except Exception:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid base64 image at index {idx}",
+                    )
                 file_path = storage_dir / f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{idx}.jpg"
                 with open(file_path, "wb") as f:
                     f.write(image_bytes)
                 saved_paths.append(str(file_path))
                 image_paths_and_bytes.append((str(file_path), image_bytes))
 
-            # Mark student facial data flag if exists
-            student_row = db.query(Student).filter(Student.user_id == new_user.id).first()
-            if student_row:
-                student_row.facial_data_encoded = True
-                db.add(student_row)
-                db.commit()
-
             # Enroll embeddings into pgvector
-            enroll_user_faces(db, new_user.id, image_paths_and_bytes)
+            inserted = enroll_user_faces(db, new_user.id, image_paths_and_bytes)
 
+            # Mark student facial data flag if enrollment succeeded
+            if inserted > 0:
+                student_row = db.query(Student).filter(Student.user_id == new_user.id).first()
+                if student_row:
+                    student_row.facial_data_encoded = True
+                    db.add(student_row)
+                    db.commit()
+
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to process face images: {e}")
 

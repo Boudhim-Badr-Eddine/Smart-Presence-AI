@@ -19,10 +19,13 @@ from app.models import (
     session,
     attendance,
     notification,
+    notification_preferences,
     chatbot,
     facial_embedding,
     admin_message,
     smart_attendance,
+    audit_log,
+    webhook,
 )
 
 # This is the Alembic Config object

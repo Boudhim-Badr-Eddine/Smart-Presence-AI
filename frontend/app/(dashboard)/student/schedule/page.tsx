@@ -1,14 +1,15 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import RoleGuard from '@/components/auth/RoleGuard';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
-const ScheduleClient = dynamic(() => import('./ScheduleClient'), {
+const ScheduleClient = nextDynamic(() => import('./ScheduleClient'), {
   loading: () => (
     <div className="space-y-4">
       <Skeleton className="h-12 w-full" />
@@ -17,8 +18,6 @@ const ScheduleClient = dynamic(() => import('./ScheduleClient'), {
   ),
   ssr: false,
 });
-
-const apiBase = getApiBase();
 
 type ScheduleSession = {
   id: number;
@@ -36,66 +35,37 @@ type ScheduleData = {
 };
 
 export default function StudentSchedulePage() {
-  const { data: schedule, isLoading } = useQuery({
+  const { data: schedule, isLoading, isError } = useQuery({
     queryKey: ['student-schedule'],
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/schedule`).catch(() => ({
-        data: {
-          sessions: [
-            {
-              id: 1,
-              subject: 'Développement Web',
-              trainer: 'Mr. Ahmed',
-              time_start: '09:00',
-              time_end: '12:00',
-              classroom: 'A101',
-              day: 'Lundi',
-              day_of_week: 1,
-            },
-            {
-              id: 2,
-              subject: 'Base de Données',
-              trainer: 'Mme. Fatima',
-              time_start: '14:00',
-              time_end: '17:00',
-              classroom: 'B203',
-              day: 'Mardi',
-              day_of_week: 2,
-            },
-            {
-              id: 3,
-              subject: 'Réseau & Sécurité',
-              trainer: 'Mr. Youssef',
-              time_start: '09:00',
-              time_end: '12:00',
-              classroom: 'C305',
-              day: 'Mercredi',
-              day_of_week: 3,
-            },
-            {
-              id: 4,
-              subject: 'Développement Web',
-              trainer: 'Mr. Ahmed',
-              time_start: '14:00',
-              time_end: '17:00',
-              classroom: 'A102',
-              day: 'Jeudi',
-              day_of_week: 4,
-            },
-            {
-              id: 5,
-              subject: 'Base de Données',
-              trainer: 'Mme. Fatima',
-              time_start: '10:00',
-              time_end: '13:00',
-              classroom: 'B204',
-              day: 'Vendredi',
-              day_of_week: 5,
-            },
-          ],
-        },
-      }));
-      return res.data as ScheduleData;
+      const rows = await apiClient<
+        Array<{
+          id: number;
+          subject: string;
+          trainer?: string | null;
+          classroom?: string | null;
+          start_time: string;
+          end_time: string;
+          day: string;
+          day_of_week?: number | null;
+        }>
+      >('/api/student/schedule', { method: 'GET', useCache: false });
+
+      return {
+        sessions: rows.map((s) => ({
+          id: s.id,
+          subject: s.subject,
+          trainer: s.trainer || '—',
+          time_start: s.start_time,
+          time_end: s.end_time,
+          classroom: s.classroom || '—',
+          day: s.day,
+          day_of_week: s.day_of_week || 0,
+        })),
+      } as ScheduleData;
     },
   });
 
@@ -118,6 +88,10 @@ export default function StudentSchedulePage() {
           <div className="space-y-4">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-96 w-full" />
+          </div>
+        ) : isError ? (
+          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            Impossible de charger votre emploi du temps. Vérifiez votre connexion et réessayez.
           </div>
         ) : (
           <ScheduleClient sessions={schedule?.sessions || []} />

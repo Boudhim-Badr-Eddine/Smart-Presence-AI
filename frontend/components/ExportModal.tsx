@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Alert } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import { apiClient } from '@/lib/api-client';
 
 type ExportFormat = 'pdf' | 'excel' | 'csv';
 
@@ -55,32 +56,18 @@ export function ExportModal({ title = 'Export Report', endpoint, filters = {} }:
       if (filters.date_range && startDate) params.append('start_date', startDate);
       if (filters.date_range && endDate) params.append('end_date', endDate);
 
-      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}/${format}?${params.toString()}`;
+      const path = `${endpoint}/${format}?${params.toString()}`;
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const data = await apiClient<Blob>(path, {
+        method: 'GET',
+        responseType: 'blob',
       });
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      // Get filename from content-disposition header or generate one
-      const contentDisposition = response.headers.get('content-disposition');
+      // Best-effort filename
       let filename = `report-${Date.now()}.${format === 'excel' ? 'xlsx' : format}`;
 
-      if (contentDisposition) {
-        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
-        if (matches && matches[1]) {
-          filename = matches[1].replace(/['"]/g, '');
-        }
-      }
-
       // Download the file
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = filename;

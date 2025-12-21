@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import { User, Mail, Phone, MapPin, Shield, Save, Lock, Globe, Palette } from 'lucide-react';
 import { useUI } from '@/contexts/UIContext';
 import AvatarUpload from '@/components/common/AvatarUpload';
-import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
 type Profile = {
   full_name: string;
@@ -20,25 +19,29 @@ type Profile = {
 };
 
 export default function ProfileClient() {
-  const apiBase = getApiBase();
   const { dir, palette, locale, setDir, setPalette, setLocale } = useUI();
 
   const { data: profile } = useQuery({
     queryKey: ['student-profile'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/profile`).catch(() => ({
-        data: {
-          full_name: 'Lamiae Idrissi',
-          email: 'lamiae.idrissi@example.com',
-          phone: '+212 612-345678',
-          city: 'Casablanca',
-          track: 'Développement Web',
-          cohort: 'Promo 2025',
-          language: 'fr' as const,
-          theme: 'system' as const,
-        },
-      }));
-      return res.data as Profile;
+      const data = await apiClient<{
+        first_name: string;
+        last_name: string;
+        email: string;
+        phone?: string;
+        class_name?: string;
+      }>('/api/student/profile', { method: 'GET', useCache: false });
+
+      return {
+        full_name: `${data.first_name ?? ''} ${data.last_name ?? ''}`.trim(),
+        email: data.email,
+        phone: data.phone,
+        city: '',
+        track: data.class_name || '',
+        cohort: '',
+        language: locale,
+        theme: 'system',
+      } as Profile;
     },
   });
 
@@ -51,20 +54,27 @@ export default function ProfileClient() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Profile) => {
-      return axios.put(`${apiBase}/api/student/profile`, data);
+      return apiClient('/api/student/profile', {
+        method: 'PUT',
+        data: {
+          full_name: data.full_name,
+          email: data.email,
+          phone: data.phone,
+        },
+      });
     },
   });
 
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: { current_password: string; new_password: string }) => {
-      return axios.post(`${apiBase}/api/student/profile/password`, data);
+      return apiClient('/api/student/profile/password', { method: 'POST', data });
     },
   });
 
   const handleAvatarUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    await axios.post(`${apiBase}/api/student/profile/avatar`, formData);
+    await apiClient('/api/student/profile/avatar', { method: 'POST', data: formData });
   };
 
   const handleSaveProfile = () => {
@@ -109,6 +119,7 @@ export default function ProfileClient() {
               type="text"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              aria-label="Nom complet"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>
@@ -122,6 +133,7 @@ export default function ProfileClient() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              aria-label="Email"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>
@@ -135,6 +147,7 @@ export default function ProfileClient() {
               type="tel"
               value={form.phone || ''}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              aria-label="Téléphone"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>
@@ -148,6 +161,7 @@ export default function ProfileClient() {
               type="text"
               value={form.city || ''}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
+              aria-label="Ville"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>
@@ -160,6 +174,7 @@ export default function ProfileClient() {
               type="text"
               value={form.track || ''}
               disabled
+              aria-label="Filière"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500 light:border-gray-300 light:bg-gray-100 light:text-gray-500"
             />
           </div>
@@ -172,6 +187,7 @@ export default function ProfileClient() {
               type="text"
               value={form.cohort || ''}
               disabled
+              aria-label="Promotion"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500 light:border-gray-300 light:bg-gray-100 light:text-gray-500"
             />
           </div>
@@ -215,6 +231,7 @@ export default function ProfileClient() {
                 setLocale(newLocale);
                 setForm({ ...form, language: newLocale });
               }}
+              aria-label="Langue"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             >
               <option value="fr">Français</option>
@@ -229,6 +246,7 @@ export default function ProfileClient() {
             <select
               value={dir}
               onChange={(e) => setDir(e.target.value as 'ltr' | 'rtl')}
+              aria-label="Direction"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             >
               <option value="ltr">LTR (Gauche à droite)</option>
@@ -246,6 +264,7 @@ export default function ProfileClient() {
               onChange={(e) =>
                 setPalette(e.target.value as 'blue' | 'emerald' | 'amber' | 'purple')
               }
+              aria-label="Palette de couleurs"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             >
               <option value="blue">Bleu</option>
@@ -271,6 +290,7 @@ export default function ProfileClient() {
               type="password"
               value={passwordForm.current}
               onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+              aria-label="Mot de passe actuel"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>
@@ -283,6 +303,7 @@ export default function ProfileClient() {
               type="password"
               value={passwordForm.next}
               onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
+              aria-label="Nouveau mot de passe"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>
@@ -295,6 +316,7 @@ export default function ProfileClient() {
               type="password"
               value={passwordForm.confirm}
               onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+              aria-label="Confirmer le mot de passe"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
             />
           </div>

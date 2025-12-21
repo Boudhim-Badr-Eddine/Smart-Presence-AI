@@ -2,11 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { Calendar, Clock, MapPin, User, Download, Plus } from 'lucide-react';
-import { getApiBase } from '@/lib/config';
-
-const apiBase = getApiBase();
+import { apiClient } from '@/lib/api-client';
 
 type Event = {
   id: number;
@@ -24,32 +21,12 @@ export default function CalendarClient() {
   const { data: events = [] } = useQuery({
     queryKey: ['student-calendar', currentMonth.getMonth(), currentMonth.getFullYear()],
     queryFn: async () => {
-      const res = await axios
-        .get(`${apiBase}/api/student/calendar`, {
-          params: { month: currentMonth.getMonth() + 1, year: currentMonth.getFullYear() },
-        })
-        .catch(() => ({
-          data: [
-            {
-              id: 1,
-              title: 'Développement Web',
-              date: '2025-01-15',
-              time: '09:00',
-              location: 'A101',
-              type: 'class',
-              description: 'Cours avec M. Ahmed',
-            },
-            {
-              id: 2,
-              title: 'Examen Database',
-              date: '2025-01-20',
-              time: '14:00',
-              location: 'B203',
-              type: 'exam',
-            },
-          ],
-        }));
-      return res.data as Event[];
+      const month = currentMonth.getMonth() + 1;
+      const year = currentMonth.getFullYear();
+      return apiClient<Event[]>(`/api/student/calendar?month=${month}&year=${year}`, {
+        method: 'GET',
+        useCache: false,
+      });
     },
   });
 

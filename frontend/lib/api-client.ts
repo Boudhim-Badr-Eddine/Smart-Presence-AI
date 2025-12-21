@@ -107,12 +107,18 @@ export async function apiClient<T = any>(
     return inflight.get(finalCacheKey) as Promise<T>;
   }
 
-  // Add auth headers
+  // Add auth headers (do not override explicit Authorization header)
   const token = typeof window !== 'undefined' ? localStorage.getItem('spa_access_token') : null;
   const headers = {
     ...axiosConfig.headers,
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  } as Record<string, any>;
+
+  const hasAuthorizationHeader = Object.keys(headers).some(
+    (key) => key.toLowerCase() === 'authorization',
+  );
+  if (!hasAuthorizationHeader && token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const requestPromise = axios({
     ...axiosConfig,
@@ -181,10 +187,11 @@ export function useApiQuery<T = any>(
   options: ApiClientOptions & { enabled?: boolean } = {},
 ) {
   const { enabled = true, ...apiOptions } = options;
+  const useCache = apiOptions.useCache ?? true;
 
   return {
     queryKey: Array.isArray(key) ? key : [key],
-    queryFn: () => apiClient<T>(endpoint, { ...apiOptions, useCache: true }),
+    queryFn: () => apiClient<T>(endpoint, { ...apiOptions, useCache }),
     enabled,
   };
 }

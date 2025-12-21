@@ -3,8 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
-
+from pydantic import BaseModel, Field
 
 # ============================================================================
 # Attendance Session Schemas
@@ -130,7 +129,7 @@ class AttendanceAlertOut(BaseModel):
     alert_type: str
     severity: str  # low, medium, high
     message: str
-    metadata: Optional[Dict[str, Any]]
+    metadata: Optional[Dict[str, Any]] = Field(alias="metadata_json")
     is_acknowledged: bool
     acknowledged_by_user_id: Optional[int]
     acknowledged_at: Optional[datetime]
@@ -139,6 +138,7 @@ class AttendanceAlertOut(BaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 # ============================================================================

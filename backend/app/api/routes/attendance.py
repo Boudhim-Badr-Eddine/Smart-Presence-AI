@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.event_bus import event_bus
 from app.models.attendance import AttendanceRecord
 from app.models.user import User
 from app.schemas.attendance import (
@@ -16,7 +17,7 @@ router = APIRouter(tags=["attendance"])
 
 
 @router.post("", response_model=AttendanceOut)
-def mark_attendance(
+async def mark_attendance(
     payload: AttendanceCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -30,6 +31,18 @@ def mark_attendance(
     record = AttendanceService.mark_attendance(db, payload.session_id, payload.student_id, payload)
     if not record:
         raise HTTPException(status_code=400, detail="Failed to mark attendance")
+
+    await event_bus.publish(
+        "attendance.marked",
+        {
+            "attendance_id": record.id,
+            "session_id": record.session_id,
+            "student_id": record.student_id,
+            "status": record.status,
+            "marked_at": record.marked_at.isoformat() if record.marked_at else None,
+        },
+    )
+
     return record
 
 
@@ -103,7 +116,7 @@ def justify_absence(
 
 
 @router.put("/{attendance_id:int}", response_model=AttendanceOut)
-def update_attendance(
+async def update_attendance(
     attendance_id: int,
     payload: AttendanceUpdate,
     db: Session = Depends(get_db),
@@ -118,6 +131,18 @@ def update_attendance(
     record = AttendanceService.update_attendance(db, attendance_id, payload)
     if not record:
         raise HTTPException(status_code=404, detail="Attendance record not found")
+
+    await event_bus.publish(
+        "attendance.updated",
+        {
+            "attendance_id": record.id,
+            "session_id": record.session_id,
+            "student_id": record.student_id,
+            "status": record.status,
+            "marked_at": record.marked_at.isoformat() if record.marked_at else None,
+        },
+    )
+
     return record
 
 

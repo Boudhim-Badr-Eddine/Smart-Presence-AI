@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.schemas.chatbot import (
+    ChatbotAskIn,
     ChatbotConversationOut,
     ChatbotMessageOut,
-    ChatbotAskIn,
 )
 from app.services.chatbot import ChatbotService
 from app.utils.deps import get_current_user, get_db

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Chatbot from '@/components/Chatbot';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import RoleGuard from '@/components/auth/RoleGuard';

@@ -1,19 +1,15 @@
 'use client';
 
-import { useRef, useState, type ComponentType } from 'react';
-import dynamicImport from 'next/dynamic';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Shield, Smile, Sparkles, Camera, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { LoadingButton } from '@/components/ui/spinner';
 import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
-
-const Webcam = dynamicImport(
-  () => import('react-webcam').then((mod) => mod.default as unknown as ComponentType<any>),
-  { ssr: false },
-);
 
 const tabs = [
   { key: 'password', label: 'Mot de passe' },
@@ -22,16 +18,90 @@ const tabs = [
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'password' | 'facial'>('password');
-  const { login } = useAuth();
+  const { login, loginWithToken } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const webcamRef = useRef<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [webcamReady, setWebcamReady] = useState(false);
   const apiBase = getApiBase();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const stopStream = () => {
+      try {
+        streamRef.current?.getTracks?.().forEach((t) => t.stop());
+      } catch {
+        // ignore
+      }
+      streamRef.current = null;
+      if (videoRef.current) {
+        try {
+          (videoRef.current as any).srcObject = null;
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    const startStream = async () => {
+      setWebcamReady(false);
+      if (mode !== 'facial' || photo) return;
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        setError('Caméra non supportée par ce navigateur.');
+        return;
+      }
+
+      const waitForVideoReady = async (video: HTMLVideoElement, timeoutMs: number) => {
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return true;
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            const onReady = () => resolve();
+            video.addEventListener('loadeddata', onReady, { once: true });
+            video.addEventListener('loadedmetadata', onReady, { once: true });
+            video.addEventListener('canplay', onReady, { once: true });
+          }),
+          new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+        ]);
+        return video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0;
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 360, facingMode: 'user' },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          (videoRef.current as any).srcObject = stream;
+          await videoRef.current.play().catch(() => undefined);
+          const ready = await waitForVideoReady(videoRef.current, 2000);
+          if (!cancelled && ready) {
+            setWebcamReady(true);
+            setError(null);
+          }
+        }
+      } catch {
+        setError('Caméra refusée. Vérifiez les permissions.');
+      }
+    };
+
+    startStream();
+    return () => {
+      cancelled = true;
+      stopStream();
+    };
+  }, [mode, photo]);
 
   const handleCapture = async () => {
     try {
@@ -41,8 +111,29 @@ export default function LoginPage() {
         return;
       }
 
-      const video = webcamRef.current?.video;
-      if (!video || !video.readyState || video.readyState !== 4) {
+      const video = videoRef.current;
+      if (!video) {
+        setError('Vidéo non prête. Attendez quelques secondes.');
+        return;
+      }
+
+      const ensureVideoReady = async (timeoutMs: number) => {
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return true;
+
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            const onReady = () => resolve();
+            video.addEventListener('loadeddata', onReady, { once: true });
+            video.addEventListener('loadedmetadata', onReady, { once: true });
+          }),
+          new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+        ]);
+
+        return video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0;
+      };
+
+      const ok = await ensureVideoReady(1500);
+      if (!ok) {
         setError('Vidéo non prête. Attendez quelques secondes.');
         return;
       }
@@ -69,39 +160,38 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
     setLoading(true);
     try {
       if (mode === 'password') {
         await login(email, password);
       } else {
+        if (!email.trim()) {
+          throw new Error('Adresse e-mail requise.');
+        }
         if (!photo) {
           throw new Error('Veuillez capturer votre visage.');
         }
-        const res = await fetch(`${apiBase}/api/auth/login/facial`, {
+        const data = await apiClient<any>('/api/auth/login/facial', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          data: {
             email,
             image_base64: photo,
-            confidence_threshold: 0.85,
-          }),
+            confidence_threshold: 0.62,
+          },
         });
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
-          throw new Error(j?.detail || 'Connexion faciale échouée');
-        }
-        const data = await res.json();
         if (data?.access_token) {
-          localStorage.setItem('spa_access_token', data.access_token);
-          localStorage.setItem('token', data.access_token);
-          window.location.href = '/';
+          await loginWithToken(String(data.access_token));
+          return;
         }
+
+        throw new Error('Login failed');
       }
     } catch (err: any) {
-      setError(err?.message ?? 'Erreur connexion');
+      const detail = err?.response?.data?.detail;
+      setError(detail || (err?.message ?? 'Erreur connexion'));
     } finally {
       setLoading(false);
     }
@@ -198,19 +288,23 @@ export default function LoginPage() {
                       <img src={photo} alt="Capture" className="w-full aspect-video object-cover" />
                     ) : (
                       <div className="relative aspect-video w-full bg-black">
-                        <Webcam
-                          ref={webcamRef}
-                          audio={false}
-                          screenshotFormat="image/jpeg"
-                          videoConstraints={{ width: 480, height: 360, facingMode: 'user' }}
+                        <video
+                          ref={videoRef}
                           className="w-full h-full"
-                          onUserMedia={() => {
+                          autoPlay
+                          playsInline
+                          muted
+                          onLoadedMetadata={() => {
                             setWebcamReady(true);
                             setError(null);
                           }}
-                          onUserMediaError={() => {
-                            setWebcamReady(false);
-                            setError('Caméra refusée. Vérifiez les permissions.');
+                          onLoadedData={() => {
+                            setWebcamReady(true);
+                            setError(null);
+                          }}
+                          onCanPlay={() => {
+                            setWebcamReady(true);
+                            setError(null);
                           }}
                         />
                         {!webcamReady && (
@@ -224,32 +318,36 @@ export default function LoginPage() {
                       </div>
                     )}
                   </div>
-                  <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  <canvas ref={canvasRef} className="hidden" />
                   
                   <div className="flex gap-2">
                     {!photo ? (
                       <button
                         type="button"
-                        disabled={!webcamReady}
+                        disabled={!webcamReady || !email.trim()}
                         onClick={handleCapture}
                         className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {webcamReady ? 'Capturer' : 'Chargement...'}
+                        {!email.trim() ? 'Entrez votre email' : webcamReady ? 'Capturer' : 'Chargement...'}
                       </button>
                     ) : (
                       <>
                         <button
                           type="button"
-                          onClick={() => setPhoto(null)}
+                          onClick={() => {
+                            setPhoto(null);
+                            setWebcamReady(false);
+                          }}
                           className="btn-outline flex-1"
                         >
                           <RotateCcw size={14} className="mr-1" /> Reprendre
                         </button>
                         <LoadingButton
-                          type="submit"
+                          type="button"
                           className="btn-primary flex-1"
                           loading={loading}
                           onClick={handleSubmit}
+                          disabled={!email.trim() || loading}
                         >
                           Valider
                         </LoadingButton>
@@ -258,7 +356,7 @@ export default function LoginPage() {
                   </div>
 
                   <div className="flex gap-2 text-xs text-white/60">
-                    <Badge icon={<Shield size={14} />}>Seuil 0.85</Badge>
+                    <Badge icon={<Shield size={14} />}>Seuil 0.62</Badge>
                     <Badge icon={<Smile size={14} />}>Anti-spoof basique</Badge>
                   </div>
                 </div>

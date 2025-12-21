@@ -1,22 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import {
   Bell,
   CheckCircle,
   XCircle,
   Trash2,
   Settings,
-  Filter,
   AlertCircle,
   MessageSquare,
   CalendarClock,
 } from 'lucide-react';
 import { useRealtimeNotifications } from '@/lib/useRealtimeNotifications';
 import { useAuth } from '@/lib/auth-context';
-import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
 
 type NotificationItem = {
   id: number;
@@ -37,52 +35,35 @@ type Preferences = {
 };
 
 export default function NotificationsClient() {
-  const apiBase = getApiBase();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [preferences, setPreferences] = useState<Preferences>({
-    system: true,
-    justification: true,
-    schedule: true,
-    message: true,
-    email: true,
-    push: false,
-  });
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['student-notifications'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/student/notifications`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            title: 'Nouvelle session ajoutée',
-            message: 'Développement Web - Demain à 09:00',
-            type: 'schedule',
-            created_at: '2025-01-14T10:30:00Z',
-            read: false,
-          },
-          {
-            id: 2,
-            title: 'Justification approuvée',
-            message: 'Votre justification pour le 11/01 a été approuvée',
-            type: 'justification',
-            created_at: '2025-01-13T15:20:00Z',
-            read: true,
-          },
-        ],
-      }));
-      return res.data as NotificationItem[];
+      return apiClient<NotificationItem[]>('/api/student/notifications', { method: 'GET' });
     },
   });
+
+  const { data: preferencesData } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: async () => {
+      return apiClient<Preferences>('/api/student/notification-preferences', { method: 'GET' });
+    },
+  });
+
+  useEffect(() => {
+    if (preferencesData) setPreferences(preferencesData);
+  }, [preferencesData]);
 
   useRealtimeNotifications(user?.id);
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) =>
-      axios.patch(`${apiBase}/api/student/notifications/${id}/read`),
+      apiClient(`/api/student/notifications/${id}/read`, { method: 'PATCH' }),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['student-notifications'] });
       const previous = queryClient.getQueryData<NotificationItem[]>(['student-notifications']);
@@ -99,7 +80,7 @@ export default function NotificationsClient() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => axios.delete(`${apiBase}/api/student/notifications/${id}`),
+    mutationFn: async (id: number) => apiClient(`/api/student/notifications/${id}`, { method: 'DELETE' }),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['student-notifications'] });
       const previous = queryClient.getQueryData<NotificationItem[]>(['student-notifications']);
@@ -117,10 +98,14 @@ export default function NotificationsClient() {
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (data: Preferences) =>
-      axios.put(`${apiBase}/api/student/notification-preferences`, data),
+      apiClient<Preferences>('/api/student/notification-preferences', { method: 'PUT', data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+    },
   });
 
   const handleSavePreferences = () => {
+    if (!preferences) return;
     updatePreferencesMutation.mutate(preferences);
     setShowPreferences(false);
   };
@@ -202,7 +187,12 @@ export default function NotificationsClient() {
             Préférences de notifications
           </h3>
           <div className="space-y-3">
-            {Object.entries(preferences).map(([key, value]) => (
+            {!preferences ? (
+              <div className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600">
+                Chargement...
+              </div>
+            ) : (
+              Object.entries(preferences).map(([key, value]) => (
               <label key={key} className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -224,11 +214,12 @@ export default function NotificationsClient() {
                             : 'Notifications push'}
                 </span>
               </label>
-            ))}
+              ))
+            )}
           </div>
           <button
             onClick={handleSavePreferences}
-            disabled={updatePreferencesMutation.isPending}
+            disabled={updatePreferencesMutation.isPending || !preferences}
             className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {updatePreferencesMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}

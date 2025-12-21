@@ -121,7 +121,7 @@ class ChatbotService:
             # Fallback to FAQ-based response if Gemini fails
             return ChatbotService._generate_faq_response(user_message)
 
-        except Exception as e:
+        except Exception:
             # Fallback to FAQ if Gemini service fails
             return ChatbotService._generate_faq_response(user_message)
 

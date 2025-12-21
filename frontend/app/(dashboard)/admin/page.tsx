@@ -3,23 +3,67 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { api, Student, Trainer, Session, Notification } from '@/lib/api';
 import Link from 'next/link';
 import {
   Bell,
   FileDown,
   Users,
-  BarChart3,
   UserPlus,
   TrendingUp,
   Activity,
   GraduationCap,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useRequireAuth } from '@/lib/auth-context';
 import { motion } from 'framer-motion';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import RoleGuard from '@/components/auth/RoleGuard';
+import { apiClient } from '@/lib/api-client';
+import SessionRequestsPanel from '@/components/SessionRequestsPanel';
+
+type AdminStudent = {
+  id: number;
+  name: string;
+  class_name: string;
+};
+
+type AdminTrainer = {
+  id: number;
+  name: string;
+  email: string;
+};
+
+type AdminSession = {
+  id: number;
+  title: string;
+  class_name: string;
+  trainer_id?: number | null;
+  trainer_name?: string | null;
+  date: string;
+  start_time: string;
+  end_time: string;
+};
+
+type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  total_pages: number;
+  page: number;
+  page_size: number;
+};
+
+type Notification = {
+  id: number;
+  message: string;
+  read: boolean;
+  created_at: string;
+  title?: string;
+  type?: string;
+};
+
+type NotificationListOut = {
+  notifications: Notification[];
+  unread_count: number;
+};
 
 interface Stats {
   totalUsers: number;
@@ -29,9 +73,17 @@ interface Stats {
   totalNotifications: number;
 }
 
+function toSafeInt(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
+}
+
+function toSafeArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 export default function AdminDashboard() {
   const { user, isLoading } = useRequireAuth(['admin']);
-  const router = useRouter();
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalStudents: 0,
@@ -39,9 +91,9 @@ export default function AdminDashboard() {
     totalSessions: 0,
     totalNotifications: 0,
   });
-  const [students, setStudents] = useState<Student[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [students, setStudents] = useState<AdminStudent[]>([]);
+  const [trainers, setTrainers] = useState<AdminTrainer[]>([]);
+  const [sessions, setSessions] = useState<AdminSession[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,24 +105,47 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [studentsData, trainersData, sessionsData, notificationsData] = await Promise.all([
-        api.listStudents(),
-        api.listTrainers(),
-        api.listSessions(),
-        api.getPendingNotifications(),
+      const [studentsRes, trainersRes, sessionsRes, notificationsRes] = await Promise.all([
+        apiClient<PaginatedResponse<AdminStudent>>(
+          '/api/admin/students?page=1&page_size=5',
+          {
+            method: 'GET',
+            useCache: false,
+          },
+        ),
+        apiClient<PaginatedResponse<AdminTrainer>>(
+          '/api/admin/trainers?page=1&page_size=5',
+          {
+            method: 'GET',
+            useCache: false,
+          },
+        ),
+        apiClient<PaginatedResponse<AdminSession>>('/api/admin/sessions?page=1&page_size=5', {
+          method: 'GET',
+          useCache: false,
+        }),
+        apiClient<NotificationListOut>('/api/notifications/me?limit=20&unread_only=true', {
+          method: 'GET',
+          useCache: false,
+        }),
       ]);
 
-      setStudents(studentsData);
-      setTrainers(trainersData);
-      setSessions(sessionsData);
-      setNotifications(notificationsData);
+      const studentsTotal = toSafeInt((studentsRes as any)?.total);
+      const trainersTotal = toSafeInt((trainersRes as any)?.total);
+      const sessionsTotal = toSafeInt((sessionsRes as any)?.total);
+      const unreadCount = toSafeInt((notificationsRes as any)?.unread_count);
+
+      setStudents(toSafeArray<AdminStudent>((studentsRes as any)?.items));
+      setTrainers(toSafeArray<AdminTrainer>((trainersRes as any)?.items));
+      setSessions(toSafeArray<AdminSession>((sessionsRes as any)?.items));
+      setNotifications(toSafeArray<Notification>((notificationsRes as any)?.notifications));
 
       setStats({
-        totalUsers: studentsData.length + trainersData.length + 1,
-        totalStudents: studentsData.length,
-        totalTrainers: trainersData.length,
-        totalSessions: sessionsData.length,
-        totalNotifications: notificationsData.length,
+        totalUsers: studentsTotal + trainersTotal + 1,
+        totalStudents: studentsTotal,
+        totalTrainers: trainersTotal,
+        totalSessions: sessionsTotal,
+        totalNotifications: unreadCount,
       });
 
       setError(null);
@@ -95,25 +170,25 @@ export default function AdminDashboard() {
   const statsCards = [
     {
       label: 'Utilisateurs Actifs',
-      value: stats.totalUsers.toString(),
+      value: String(stats.totalUsers ?? 0),
       icon: Users,
       color: 'bg-blue-600/20 text-blue-300',
     },
     {
       label: 'Étudiants',
-      value: stats.totalStudents.toString(),
+      value: String(stats.totalStudents ?? 0),
       icon: GraduationCap,
       color: 'bg-emerald-600/20 text-emerald-300',
     },
     {
       label: 'Formateurs',
-      value: stats.totalTrainers.toString(),
+      value: String(stats.totalTrainers ?? 0),
       icon: Users,
       color: 'bg-purple-600/20 text-purple-300',
     },
     {
       label: 'Sessions Créées',
-      value: stats.totalSessions.toString(),
+      value: String(stats.totalSessions ?? 0),
       icon: Activity,
       color: 'bg-amber-600/20 text-amber-300',
     },
@@ -266,6 +341,11 @@ export default function AdminDashboard() {
 
         {/* Data Tables Grid */}
         <div className="grid gap-6 md:grid-cols-2">
+          {/* Session Requests Panel */}
+          <div className="md:col-span-2">
+            <SessionRequestsPanel />
+          </div>
+
           {/* Students Summary */}
           <div className="rounded-lg border border-white/10 bg-white/5 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10 dark:border-white/10 light:border-gray-200 flex items-center justify-between">
@@ -283,7 +363,7 @@ export default function AdminDashboard() {
                   className="px-6 py-3 hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-gray-50 transition"
                 >
                   <p className="font-medium text-white dark:text-white light:text-gray-900 text-sm">
-                    {student.first_name} {student.last_name}
+                    {student.name}
                   </p>
                   <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">
                     {student.class_name}
@@ -310,7 +390,7 @@ export default function AdminDashboard() {
                   className="px-6 py-3 hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-gray-50 transition"
                 >
                   <p className="font-medium text-white dark:text-white light:text-gray-900 text-sm">
-                    {trainer.first_name} {trainer.last_name}
+                    {trainer.name}
                   </p>
                   <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">
                     {trainer.email}
@@ -347,7 +427,7 @@ export default function AdminDashboard() {
                       className="hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-gray-50 transition"
                     >
                       <td className="px-6 py-3 font-medium text-white dark:text-white light:text-gray-900">
-                        {session.subject}
+                        {session.title}
                       </td>
                       <td className="px-6 py-3 text-white/60 dark:text-white/60 light:text-gray-600">
                         {session.class_name}
@@ -356,7 +436,7 @@ export default function AdminDashboard() {
                         {new Date(session.date).toLocaleDateString('fr-FR')}
                       </td>
                       <td className="px-6 py-3 text-white/60 dark:text-white/60 light:text-gray-600">
-                        ID: {session.trainer_id}
+                        {session.trainer_name || (session.trainer_id ? `ID: ${session.trainer_id}` : '—')}
                       </td>
                     </tr>
                   ))}

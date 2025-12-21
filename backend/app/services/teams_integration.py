@@ -1,6 +1,6 @@
 """Teams Integration Service - Microsoft Teams attendance tracking."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session

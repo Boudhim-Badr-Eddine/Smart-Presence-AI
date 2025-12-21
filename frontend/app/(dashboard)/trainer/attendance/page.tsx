@@ -18,11 +18,9 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { useEffect } from 'react';
-import { getApiBase } from '@/lib/config';
 import { getWebSocketManager } from '@/lib/websocket';
-import OnboardingTour from '@/components/OnboardingTour';
+import { apiClient } from '@/lib/api-client';
 
 type AttendanceRecord = {
   id: number;
@@ -36,7 +34,6 @@ type AttendanceRecord = {
     status: 'pending' | 'approved' | 'rejected';
     reason: string;
     submitted_at: string;
-    admin_comment?: string;
   };
 };
 
@@ -46,7 +43,6 @@ export default function TrainerAttendancePage() {
   const [filterSession, setFilterSession] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
   const queryClient = useQueryClient();
-  const apiBase = getApiBase();
 
   useEffect(() => {
     const ws = getWebSocketManager();
@@ -57,90 +53,16 @@ export default function TrainerAttendancePage() {
     return () => unsub();
   }, [queryClient]);
 
-  const { data } = useQuery({
+  const { data: attendanceRecords = [] } = useQuery({
     queryKey: ['trainer-attendance'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/trainer/attendance`).catch(() => ({
-        data: {
-          items: [
-            {
-              id: 1,
-              student: 'Mohamed Alaoui',
-              email: 'mohamed@example.com',
-              session: 'Dev Web',
-              status: 'present',
-              date: '2025-12-12',
-              percentage: 100,
-            },
-            {
-              id: 2,
-              student: 'Sara Bennani',
-              email: 'sara@example.com',
-              session: 'Dev Web',
-              status: 'absent',
-              date: '2025-12-12',
-              percentage: 0,
-              justification: {
-                status: 'pending',
-                reason: 'Maladie, certificat envoyé.',
-                submitted_at: '2025-12-12T07:30:00Z',
-              },
-            },
-            {
-              id: 3,
-              student: 'Youssef Amrani',
-              email: 'youssef@example.com',
-              session: 'Dev Web',
-              status: 'late',
-              date: '2025-12-12',
-              percentage: 75,
-              justification: {
-                status: 'pending',
-                reason: 'Transport en grève',
-                submitted_at: '2025-12-12T08:00:00Z',
-              },
-            },
-            {
-              id: 4,
-              student: 'Ahmed Ben Ali',
-              email: 'ahmed@example.com',
-              session: 'Database',
-              status: 'present',
-              date: '2025-12-13',
-              percentage: 100,
-            },
-            {
-              id: 5,
-              student: 'Fatima Zahra',
-              email: 'fatima@example.com',
-              session: 'Database',
-              status: 'excused',
-              date: '2025-12-13',
-              percentage: 50,
-              justification: {
-                status: 'approved',
-                reason: 'Déplacement administratif',
-                submitted_at: '2025-12-11T18:00:00Z',
-                admin_comment: 'Document reçu',
-              },
-            },
-            {
-              id: 6,
-              student: 'Karim El Khabazi',
-              email: 'karim@example.com',
-              session: 'Dev Web',
-              status: 'present',
-              date: '2025-12-14',
-              percentage: 100,
-            },
-          ],
-        },
-      }));
-      return res.data as { items: AttendanceRecord[] };
+      return apiClient<AttendanceRecord[]>('/api/trainer/attendance', {
+        method: 'GET',
+        useCache: false,
+      });
     },
   });
 
-  const attendanceRecords = useMemo(() => data?.items ?? [], [data?.items]);
   const sessions = [...new Set(attendanceRecords.map((r) => r.session))];
   const pendingJustifications = attendanceRecords.filter(
     (r) => r.justification?.status === 'pending',
@@ -150,33 +72,32 @@ export default function TrainerAttendancePage() {
     mutationFn: async (payload: {
       id: number;
       status: 'approved' | 'rejected';
-      admin_comment?: string;
     }) => {
-      return axios.patch(`${apiBase}/api/trainer/attendance/${payload.id}/justification`, payload);
+      return apiClient(`/api/trainer/attendance/${payload.id}/justification`, {
+        method: 'PATCH',
+        data: payload,
+      });
     },
     // Optimistic update so the UI responds instantly
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: ['trainer-attendance'] });
-      const previous = queryClient.getQueryData<{ items: AttendanceRecord[] }>([
-        'trainer-attendance',
-      ]);
-      queryClient.setQueryData(['trainer-attendance'], {
-        items: (previous?.items ?? []).map((record) =>
-          record.id === payload.id
-            ? {
-                ...record,
-                justification: {
-                  ...(record.justification ?? {
-                    reason: '',
-                    submitted_at: new Date().toISOString(),
-                  }),
-                  status: payload.status,
-                  admin_comment: payload.admin_comment ?? record.justification?.admin_comment,
-                },
-              }
-            : record,
-        ),
-      });
+      const previous = queryClient.getQueryData<AttendanceRecord[]>(['trainer-attendance']);
+      queryClient.setQueryData(
+        ['trainer-attendance'],
+        (previous ?? []).map((record) => {
+          if (record.id !== payload.id) return record;
+          if (payload.status === 'approved') {
+            return {
+              ...record,
+              status: 'excused',
+              justification: record.justification
+                ? { ...record.justification, status: 'approved' }
+                : record.justification,
+            };
+          }
+          return { ...record, justification: undefined };
+        }),
+      );
       return { previous };
     },
     onError: (_err, _payload, context) => {
@@ -479,7 +400,6 @@ export default function TrainerAttendancePage() {
                         updateJustification.mutate({
                           id: record.id,
                           status: 'approved',
-                          admin_comment: 'Justification acceptée',
                         })
                       }
                       className="inline-flex items-center gap-2 rounded-lg bg-emerald-600/20 px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-600/30 transition"
@@ -492,7 +412,6 @@ export default function TrainerAttendancePage() {
                         updateJustification.mutate({
                           id: record.id,
                           status: 'rejected',
-                          admin_comment: 'Pièce manquante',
                         })
                       }
                       className="inline-flex items-center gap-2 rounded-lg bg-red-600/20 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-600/30 transition"
@@ -638,16 +557,6 @@ export default function TrainerAttendancePage() {
                       {new Date(selectedRecord.justification.submitted_at).toLocaleString('fr-FR')}
                     </p>
                   </div>
-                  {selectedRecord.justification.admin_comment && (
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-3 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-gray-50">
-                      <p className="text-sm font-semibold text-white dark:text-white light:text-gray-900 mb-1">
-                        Commentaire admin
-                      </p>
-                      <p className="text-sm text-zinc-200 dark:text-zinc-200 light:text-gray-800">
-                        {selectedRecord.justification.admin_comment}
-                      </p>
-                    </div>
-                  )}
                   <div className="flex flex-wrap gap-2">
                     <span
                       className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(selectedRecord.status)}`}
@@ -675,7 +584,6 @@ export default function TrainerAttendancePage() {
                     updateJustification.mutate({
                       id: selectedRecord.id,
                       status: 'approved',
-                      admin_comment: 'Approuvé depuis la fiche',
                     })
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600/20 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-600/30 transition"
@@ -688,7 +596,6 @@ export default function TrainerAttendancePage() {
                     updateJustification.mutate({
                       id: selectedRecord.id,
                       status: 'rejected',
-                      admin_comment: 'Refusé depuis la fiche',
                     })
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600/20 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-600/30 transition"

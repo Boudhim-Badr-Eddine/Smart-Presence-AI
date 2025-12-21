@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, DateTime, Index, Integer, Numeric, String, Time
+from sqlalchemy import JSON, Boolean, Column, DateTime, Index, Integer, Numeric, String, Time, UniqueConstraint
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -8,8 +8,12 @@ class AttendanceRecord(Base):
     __tablename__ = "attendance_records"
 
     __table_args__ = (
+        UniqueConstraint("session_id", "student_id", name="uq_attendance_session_student"),
         Index("ix_attendance_session_student", "session_id", "student_id"),
         Index("ix_attendance_status_marked", "status", "marked_at"),
+        Index("ix_attendance_marked_at", "marked_at"),
+        Index("ix_attendance_student", "student_id"),
+        Index("ix_attendance_session", "session_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -28,3 +32,8 @@ class AttendanceRecord(Base):
     ip_address = Column(String(45))
     location_data = Column(JSON)
     created_at = Column(DateTime, server_default=func.now())
+    is_deleted = Column(Boolean, default=False, server_default="false")
+
+
+# Backward-compatible alias
+Attendance = AttendanceRecord

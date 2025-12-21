@@ -2,6 +2,8 @@
 export const dynamic = 'force-dynamic';
 import RoleGuard from '@/components/auth/RoleGuard';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import SessionRequestModal from '@/components/SessionRequestModal';
+import AttendanceDetailsModal from '@/components/AttendanceDetailsModal';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -16,11 +18,16 @@ import {
   MessageSquare,
   NotebookPen,
   Send,
+  Play,
+  Eye,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { getApiBase } from '@/lib/config';
+import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 
 type Session = {
   id: number;
@@ -31,6 +38,8 @@ type Session = {
   end_time: string;
   students: number;
   attendance_rate?: number;
+  is_active?: boolean;
+  is_requested?: boolean;
 };
 
 type SessionNote = {
@@ -43,116 +52,84 @@ type SessionNote = {
 };
 
 export default function TrainerSessionsPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [noteModalSession, setNoteModalSession] = useState<Session | null>(null);
-  const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
+  const [showSessionRequestModal, setShowSessionRequestModal] = useState(false);
+  const [selectedSessionForRequest, setSelectedSessionForRequest] = useState<Session | null>(null);
+  const [detailsModalSession, setDetailsModalSession] = useState<number | null>(null);
+  const [activatingSessionId, setActivatingSessionId] = useState<number | null>(null);
   const queryClient = useQueryClient();
-  const apiBase = getApiBase();
 
-  const { data: sessionsData } = useQuery({
+  const {
+    data: sessionsData,
+    isError: isSessionsError,
+    isLoading: isSessionsLoading,
+    error: sessionsError,
+    isEnabled: isSessionsEnabled,
+  } = useQuery({
     queryKey: ['trainer-sessions'],
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!user && !!localStorage.getItem('spa_access_token'),
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/trainer/sessions`).catch(() => ({
-        data: [
-          {
-            id: 1,
-            title: 'Développement Web I',
-            class_name: 'L3-Dev-A',
-            date: '2025-12-15',
-            start_time: '09:00',
-            end_time: '11:00',
-            students: 24,
-            attendance_rate: 92,
-          },
-          {
-            id: 2,
-            title: 'Base de Données',
-            class_name: 'L3-Dev-B',
-            date: '2025-12-16',
-            start_time: '14:00',
-            end_time: '16:00',
-            students: 28,
-            attendance_rate: 85,
-          },
-          {
-            id: 3,
-            title: 'Développement Web II',
-            class_name: 'L3-Dev-A',
-            date: '2025-12-17',
-            start_time: '09:00',
-            end_time: '11:00',
-            students: 24,
-            attendance_rate: 88,
-          },
-          {
-            id: 4,
-            title: 'Sécurité Informatique',
-            class_name: 'L3-Sec',
-            date: '2025-12-18',
-            start_time: '13:00',
-            end_time: '15:00',
-            students: 20,
-            attendance_rate: 95,
-          },
-          {
-            id: 5,
-            title: 'Cloud Computing',
-            class_name: 'L3-Dev-B',
-            date: '2025-12-19',
-            start_time: '10:00',
-            end_time: '12:00',
-            students: 28,
-            attendance_rate: 79,
-          },
-        ],
-      }));
-      return res.data as Session[];
+      try {
+        const res = await apiClient<any[]>(`/api/trainer/sessions?page=1&limit=100`, {
+          method: 'GET',
+          useCache: false,
+        });
+
+        return (res || []).map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          class_name: s.class_name ?? '',
+          date: s.date,
+          start_time: String(s.start_time || '').slice(0, 5),
+          end_time: String(s.end_time || '').slice(0, 5),
+          students: s.students ?? 0,
+          attendance_rate: s.attendance_rate,
+          is_active: s.is_active ?? false,
+        })) as Session[];
+      } catch (err: any) {
+        console.error('Failed to fetch trainer sessions:', err);
+        throw err;
+      }
     },
   });
 
   const { data: notesData } = useQuery({
     queryKey: ['trainer-session-notes'],
     queryFn: async () => {
-      const res = await axios.get(`${apiBase}/api/trainer/session-notes`).catch(() => ({
-        data: {
-          items: [
-            {
-              id: 101,
-              session_id: 1,
-              title: 'Préparer le TD',
-              content: 'Ajouter un exercice sur les hooks avant la séance.',
-              created_by: 'Vous',
-              created_at: new Date().toISOString(),
-            },
-            {
-              id: 102,
-              session_id: 2,
-              title: 'Rappel SQL',
-              content: 'Insister sur les jointures et clés étrangères.',
-              created_by: 'Vous',
-              created_at: new Date().toISOString(),
-            },
-            {
-              id: 103,
-              session_id: 3,
-              title: 'Suivi étudiants',
-              content: 'Planifier un rattrapage pour les absents chroniques.',
-              created_by: 'Vous',
-              created_at: new Date().toISOString(),
-            },
-          ],
-        },
+      const res = await apiClient<any[]>(`/api/trainer/session-notes`, {
+        method: 'GET',
+        useCache: false,
+      });
+
+      const items: SessionNote[] = (res || []).map((n: any) => ({
+        id: n.id,
+        session_id: n.session_id,
+        title: n.title,
+        content: n.notes ?? n.content ?? '',
+        created_by: 'Vous',
+        created_at: n.date ? new Date(n.date).toISOString() : new Date().toISOString(),
       }));
-      return res.data as { items: SessionNote[] };
+      return { items };
     },
   });
 
   const addNoteMutation = useMutation({
-    mutationFn: async (payload: { session_id: number; title: string; content: string }) => {
-      return axios.post(`${apiBase}/api/trainer/session-notes`, payload);
+    mutationFn: async (payload: { session_id: number; notes: string }) => {
+      return apiClient(`/api/trainer/session-notes`, {
+        method: 'POST',
+        data: payload,
+        useCache: false,
+      });
     },
     // Optimistic update keeps the UI responsive while awaiting any backend
     onMutate: async (payload) => {
@@ -161,15 +138,20 @@ export default function TrainerSessionsPage() {
         'trainer-session-notes',
       ]);
       const optimistic: SessionNote = {
-        id: Date.now(),
+        id: payload.session_id,
         session_id: payload.session_id,
-        title: payload.title || 'Note',
-        content: payload.content,
+        title: getSessionTitle(payload.session_id),
+        content: payload.notes,
         created_by: 'Vous',
         created_at: new Date().toISOString(),
       };
+
+      const nextItems = [
+        optimistic,
+        ...((previous?.items ?? []).filter((n) => n.session_id !== payload.session_id) || []),
+      ];
       queryClient.setQueryData(['trainer-session-notes'], {
-        items: [optimistic, ...(previous?.items ?? [])],
+        items: nextItems,
       });
       return { previous };
     },
@@ -183,12 +165,28 @@ export default function TrainerSessionsPage() {
     },
   });
 
+  const activationMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiClient(`/api/trainer/activate-session?session_id=${sessionId}`, {
+        method: 'POST',
+        useCache: false,
+      });
+    },
+    onMutate: (sessionId) => {
+      setActivatingSessionId(sessionId);
+    },
+    onSettled: () => {
+      setActivatingSessionId(null);
+      queryClient.invalidateQueries({ queryKey: ['trainer-sessions'] });
+    },
+  });
+
   const isSavingNote = addNoteMutation.status === 'pending';
 
   const sessions: Session[] = useMemo(() => sessionsData ?? [], [sessionsData]);
   const notes = notesData?.items ?? [];
 
-  const classes = [...new Set(sessions.map((s) => s.class_name))];
+  const classes = [...new Set(sessions.map((s) => s.class_name).filter(Boolean))];
 
   const filteredSessions = useMemo(() => {
     return sessions.filter((session) => {
@@ -209,17 +207,12 @@ export default function TrainerSessionsPage() {
 
   const handleOpenNoteModal = (session: Session) => {
     setNoteModalSession(session);
-    setNoteTitle('');
-    setNoteContent('');
+    setNoteContent(getNotesForSession(session.id)[0]?.content ?? '');
   };
 
   const handleSubmitNote = async () => {
     if (!noteModalSession || !noteContent.trim()) return;
-    await addNoteMutation.mutateAsync({
-      session_id: noteModalSession.id,
-      title: noteTitle || noteModalSession.title,
-      content: noteContent.trim(),
-    });
+    await addNoteMutation.mutateAsync({ session_id: noteModalSession.id, notes: noteContent.trim() });
     setNoteModalSession(null);
   };
 
@@ -257,6 +250,21 @@ export default function TrainerSessionsPage() {
             Créer une session
           </button>
         </div>
+
+        {isSessionsError && !isSessionsLoading && (
+          <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-start justify-between">
+            <div>
+              <p className="font-semibold mb-1">Erreur</p>
+              <p>Impossible de charger vos sessions. Vérifiez votre connexion et réessayez.</p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-xs whitespace-nowrap"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="rounded-lg border border-white/10 bg-white/5 p-4 dark:border-white/10 dark:bg-white/5 light:border-gray-200 light:bg-white mb-6">
@@ -313,6 +321,19 @@ export default function TrainerSessionsPage() {
                       </h3>
                       <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600 mt-1">
                         {session.class_name}
+                                          <div className="flex items-center gap-2">
+                                            {session.is_active ? (
+                                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                                                Activée
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-zinc-500/20 text-zinc-400 border border-zinc-500/30">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-zinc-500"></span>
+                                                Désactivée
+                                              </span>
+                                            )}
+                                          </div>
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -355,14 +376,51 @@ export default function TrainerSessionsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <button className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600/20 px-4 py-2 font-medium text-blue-300 hover:bg-blue-600/30 transition">
-                      <ChevronRight className="h-4 w-4" />
-                      Pointer
+                  <div className="grid grid-cols-3 gap-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedSessionForRequest(session);
+                        setShowSessionRequestModal(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600/20 px-4 py-2 font-medium text-blue-300 hover:bg-blue-600/30 transition text-xs"
+                      title="Demander une session à l'administrateur"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      Demander
                     </button>
+                    <button 
+                      onClick={() => activationMutation.mutate(session.id)}
+                      disabled={activatingSessionId === session.id || session.is_active}
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600/20 px-4 py-2 font-medium text-emerald-300 hover:bg-emerald-600/30 transition text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Activer la présence pour cette session"
+                    >
+                      {activatingSessionId === session.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : session.is_active ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                      {activatingSessionId === session.id
+                        ? 'Activation...'
+                        : session.is_active
+                          ? 'Activée'
+                          : 'Désactivée'}
+                    </button>
+                    <button 
+                      onClick={() => setDetailsModalSession(session.id)}
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-600/20 px-4 py-2 font-medium text-purple-300 hover:bg-purple-600/30 transition text-xs"
+                      title="Voir les détails de présence"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Détails
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-2 mt-2">
                     <button
                       onClick={() => handleOpenNoteModal(session)}
-                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600/20 px-4 py-2 font-medium text-emerald-300 hover:bg-emerald-600/30 transition"
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-600/20 px-4 py-2 font-medium text-orange-300 hover:bg-orange-600/30 transition"
                     >
                       <MessageSquare className="h-4 w-4" />
                       Notes ({getNotesForSession(session.id).length})
@@ -417,15 +475,47 @@ export default function TrainerSessionsPage() {
                           </p>
                           <p className="text-xs text-zinc-400 dark:text-zinc-400 light:text-gray-600">
                             Présence
+                                                {session.is_active ? (
+                                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                                                    Activée
+                                                  </span>
+                                                ) : (
+                                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-zinc-500/20 text-zinc-400 border border-zinc-500/30">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-500"></span>
+                                                    Désactivée
+                                                  </span>
+                                                )}
                           </p>
                         </div>
                       )}
-                      <button className="rounded border border-white/10 dark:border-white/10 light:border-gray-300 px-3 py-1 text-sm text-white dark:text-white light:text-gray-900 hover:bg-white/10 dark:hover:bg-white/10 light:hover:bg-gray-100 transition">
+                      <button 
+                        onClick={() => activationMutation.mutate(session.id)}
+                        disabled={activatingSessionId === session.id || session.is_active}
+                        className="rounded border border-emerald-500/20 bg-emerald-600/20 px-3 py-1 text-sm font-medium text-emerald-300 hover:bg-emerald-600/30 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {activatingSessionId === session.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : session.is_active ? (
+                          <CheckCircle2 className="h-3 w-3" />
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
+                        {activatingSessionId === session.id
+                          ? 'Activation...'
+                          : session.is_active
+                            ? 'Activée'
+                            : 'Désactivée'}
+                      </button>
+                      <button 
+                        onClick={() => setDetailsModalSession(session.id)}
+                        className="rounded border border-white/10 dark:border-white/10 light:border-gray-300 px-3 py-1 text-sm text-white dark:text-white light:text-gray-900 hover:bg-white/10 dark:hover:bg-white/10 light:hover:bg-gray-100 transition"
+                      >
                         Détails
                       </button>
                       <button
                         onClick={() => handleOpenNoteModal(session)}
-                        className="rounded border border-emerald-500/20 bg-emerald-600/20 px-3 py-1 text-sm font-medium text-emerald-300 hover:bg-emerald-600/30 transition"
+                        className="rounded border border-orange-500/20 bg-orange-600/20 px-3 py-1 text-sm font-medium text-orange-300 hover:bg-orange-600/30 transition"
                       >
                         Notes ({getNotesForSession(session.id).length})
                       </button>
@@ -526,13 +616,6 @@ export default function TrainerSessionsPage() {
                     Ajouter une note
                   </p>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Titre (optionnel)"
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-zinc-400 dark:border-white/10 dark:bg-white/5 dark:text-white light:border-gray-300 light:bg-white light:text-gray-900"
-                />
                 <textarea
                   placeholder="Ajoutez des notes sur le déroulement, les actions à suivre, les étudiants à surveiller..."
                   value={noteContent}
@@ -608,7 +691,7 @@ export default function TrainerSessionsPage() {
               Créer une session
             </h2>
             <p className="text-sm text-zinc-400 dark:text-zinc-400 light:text-gray-600 mb-6">
-              Formulaire de création à implémenter
+              La création de sessions se fait via l'espace Admin.
             </p>
             <button
               onClick={() => setShowCreateModal(false)}
@@ -619,6 +702,35 @@ export default function TrainerSessionsPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Session Request Modal */}
+      <SessionRequestModal
+        isOpen={showSessionRequestModal}
+        onClose={() => {
+          setShowSessionRequestModal(false);
+          setSelectedSessionForRequest(null);
+        }}
+        onSuccess={() => {
+          setShowSessionRequestModal(false);
+          setSelectedSessionForRequest(null);
+          queryClient.invalidateQueries({ queryKey: ['trainer-sessions'] });
+        }}
+        session={selectedSessionForRequest}
+      />
+
+      {/* Attendance Details Modal */}
+      <AttendanceDetailsModal
+        isOpen={!!detailsModalSession}
+        sessionId={detailsModalSession}
+        sessionTitle={
+          sessionsData?.find((s) => s.id === detailsModalSession)?.title || 'Session'
+        }
+        onClose={() => setDetailsModalSession(null)}
+        onConfirm={() => {
+          setDetailsModalSession(null);
+          queryClient.invalidateQueries({ queryKey: ['trainer-sessions'] });
+        }}
+      />
     </RoleGuard>
   );
 }
