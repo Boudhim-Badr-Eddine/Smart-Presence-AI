@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, Index, Integer, Numeric, String
+from sqlalchemy import Boolean, Column, Date, DateTime, Index, Integer, Numeric, String, Text
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -39,6 +39,13 @@ class Student(Base):
     alert_level = Column(String(20), default="none")
     profile_photo_path = Column(String(255))
     facial_data_encoded = Column(Boolean, default=False)
+    
+    # N8N integration fields
+    pourcentage = Column(Integer, nullable=True)  # AI attendance score (0-100)
+    justification = Column(Text, nullable=True)  # AI explanation for score
+    alertsent = Column(Boolean, default=False)  # WhatsApp alert sent flag
+    idStr = Column(String(20), nullable=True)  # String ID for N8N compatibility
+    
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     is_deleted = Column(Boolean, default=False, server_default="false")

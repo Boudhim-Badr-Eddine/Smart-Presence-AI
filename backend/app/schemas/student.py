@@ -58,6 +58,13 @@ class StudentOut(StudentBase):
     alert_level: str
     profile_photo_path: Optional[str]
     facial_data_encoded: bool
+    
+    # N8N integration fields
+    pourcentage: Optional[int] = None  # AI attendance score (0-100)
+    justification: Optional[str] = None  # AI explanation
+    alertsent: Optional[bool] = False  # WhatsApp alert sent flag
+    idStr: Optional[str] = None  # String ID for N8N compatibility
+    
     created_at: datetime
     updated_at: datetime
 

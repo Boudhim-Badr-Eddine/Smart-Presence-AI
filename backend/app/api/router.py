@@ -16,6 +16,7 @@ from app.api.routes import (
     imports,
     integrations,
     messages,
+    n8n,
     notifications,
     qr_checkin,
     reports,
@@ -54,6 +55,7 @@ api_router.include_router(qr_checkin.router)
 api_router.include_router(export.router)
 api_router.include_router(integrations.router)
 api_router.include_router(dashboard.router)
+api_router.include_router(n8n.router, tags=["N8N Integration"])  # N8N webhook endpoints
 try:
     from app.api.routes import embeddings
 

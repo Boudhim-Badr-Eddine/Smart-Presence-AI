@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.attendance import AttendanceRecord
 from app.models.session import Session as SessionModel
 from app.models.student import Student
+from app.models.absence import Absence  # N8N integration
 from app.schemas.attendance import AttendanceCreate, AttendanceUpdate
 
 
@@ -63,6 +64,10 @@ class AttendanceService:
         
         # ⭐ AUTO-CALCULATE ABSENCE HOURS, ATTENDANCE RATE & ALERT LEVEL
         AttendanceService._update_student_stats(db, student_id, session_id, payload.status)
+        
+        # ⭐ N8N INTEGRATION: Log absence for email notification workflow
+        if payload.status == "absent":
+            AttendanceService._log_absence_for_n8n(db, student_id, session_id)
         
         return record
 
@@ -279,3 +284,35 @@ class AttendanceService:
 
         db.commit()
         db.refresh(student)
+
+    @staticmethod
+    def _log_absence_for_n8n(db: Session, student_id: int, session_id: int):
+        """
+        Log absence to N8N absence table for email notification workflow.
+        
+        N8N Workflow 1 reads from this table to send emails to parents.
+        """
+        # Get student and session data
+        student = db.query(Student).filter(Student.id == student_id).first()
+        session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+        
+        if not student or not session:
+            return
+        
+        # Calculate absence hours from session duration
+        absence_hours = (session.duration_minutes / 60.0) if session.duration_minutes else 0
+        
+        # Create absence record for N8N
+        absence = Absence(
+            studentid=student_id,
+            date=session.start_time or datetime.now(),
+            hours=Decimal(str(round(absence_hours, 2))),
+            notified=False  # N8N will mark as True after sending email
+        )
+        db.add(absence)
+        db.commit()
+        
+        # Update alertsent flag if threshold exceeded (for WhatsApp workflow)
+        if student.total_absence_hours >= 8 and not student.alertsent:
+            # N8N Workflow 3 will pick this up for WhatsApp notification
+            pass  # Keep alertsent=False so N8N can detect and send WhatsApp
