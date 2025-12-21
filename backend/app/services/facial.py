@@ -110,10 +110,10 @@ def enroll_user_faces(db: Session, user_id: int, image_paths_and_bytes: List[Tup
         )
         inserted += 1
 
-    if inserted < 3:
+    if inserted < 2:
         db.rollback()
         raise ValueError(
-            f"At least 3 usable face images are required (got {inserted}). Failures: {', '.join(failures) or 'unknown'}"
+            f"At least 2 usable face images are required (got {inserted}). Failures: {', '.join(failures) or 'unknown'}. Please ensure good lighting and hold the camera steady."
         )
 
     db.commit()

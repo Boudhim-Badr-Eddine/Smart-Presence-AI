@@ -42,6 +42,22 @@ async def mark_attendance(
             "marked_at": record.marked_at.isoformat() if record.marked_at else None,
         },
     )
+    
+    # ⭐ TRIGGER REAL-TIME UPDATES FOR STUDENT STATS
+    await event_bus.publish(
+        "student_stats_updated",
+        {
+            "student_id": record.student_id,
+            "session_id": record.session_id,
+        },
+    )
+    await event_bus.publish(
+        "student_attendance_updated",
+        {
+            "student_id": record.student_id,
+            "attendance_id": record.id,
+        },
+    )
 
     return record
 
@@ -140,6 +156,22 @@ async def update_attendance(
             "student_id": record.student_id,
             "status": record.status,
             "marked_at": record.marked_at.isoformat() if record.marked_at else None,
+        },
+    )
+    
+    # ⭐ TRIGGER REAL-TIME UPDATES FOR STUDENT STATS
+    await event_bus.publish(
+        "student_stats_updated",
+        {
+            "student_id": record.student_id,
+            "session_id": record.session_id,
+        },
+    )
+    await event_bus.publish(
+        "student_attendance_updated",
+        {
+            "student_id": record.student_id,
+            "attendance_id": record.id,
         },
     )
 

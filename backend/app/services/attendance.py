@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.attendance import AttendanceRecord
+from app.models.session import Session as SessionModel
 from app.models.student import Student
 from app.schemas.attendance import AttendanceCreate, AttendanceUpdate
 
@@ -59,6 +60,10 @@ class AttendanceService:
         db.add(record)
         db.commit()
         db.refresh(record)
+        
+        # ⭐ AUTO-CALCULATE ABSENCE HOURS, ATTENDANCE RATE & ALERT LEVEL
+        AttendanceService._update_student_stats(db, student_id, session_id, payload.status)
+        
         return record
 
     @staticmethod
@@ -79,11 +84,22 @@ class AttendanceService:
         if not record:
             return None
 
+        # Track if status changed for stats recalculation
+        status_changed = False
+        old_status = record.status
+        
         for field, value in payload.dict(exclude_unset=True).items():
+            if field == "status" and value != old_status:
+                status_changed = True
             setattr(record, field, value)
 
         db.commit()
         db.refresh(record)
+        
+        # ⭐ Recalculate stats if status changed
+        if status_changed:
+            AttendanceService._update_student_stats(db, record.student_id, record.session_id, record.status)
+        
         return record
 
     @staticmethod
@@ -198,3 +214,68 @@ class AttendanceService:
             .all()
         )
         return records
+
+    @staticmethod
+    def _update_student_stats(db: Session, student_id: int, session_id: int, status: str):
+        """Auto-calculate absence hours, attendance rate, and alert level.
+        
+        This method implements three key automations:
+        1. Auto-Calculate Absence Hours: Adds session duration when absent
+        2. Auto-Update Attendance Rate: Recalculates percentage after each attendance
+        3. Auto-Escalate Alert Level: Updates alert status based on thresholds
+        """
+        student = db.query(Student).filter(Student.id == student_id).first()
+        if not student:
+            return
+
+        # 1. AUTO-CALCULATE ABSENCE HOURS ⭐
+        if status == "absent":
+            session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+            if session and session.duration_minutes:
+                # Convert minutes to hours and add to total
+                absence_hours = session.duration_minutes / 60.0
+                student.total_absence_hours = (student.total_absence_hours or 0) + int(absence_hours)
+        
+        # Also track late minutes
+        if status == "late":
+            # Late minutes are already in the attendance record, just aggregate
+            total_late = db.query(AttendanceRecord).filter(
+                AttendanceRecord.student_id == student_id,
+                AttendanceRecord.status == "late"
+            ).all()
+            student.total_late_minutes = sum(r.late_minutes or 0 for r in total_late)
+
+        # 2. AUTO-UPDATE ATTENDANCE RATE ⭐
+        # Get all attendance records for this student
+        all_records = db.query(AttendanceRecord).filter(
+            AttendanceRecord.student_id == student_id
+        ).all()
+        
+        total_sessions = len(all_records)
+        if total_sessions > 0:
+            # Count present (including late and excused as present)
+            present_count = sum(
+                1 for r in all_records 
+                if r.status in ["present", "late", "excused"]
+            )
+            attendance_rate = (present_count / total_sessions) * 100
+            student.attendance_rate = Decimal(str(round(attendance_rate, 2)))
+        else:
+            student.attendance_rate = Decimal("100.00")
+
+        # 3. AUTO-ESCALATE ALERT LEVEL ⭐
+        # Calculate absence percentage (inverse of attendance rate)
+        absence_rate = 100 - float(student.attendance_rate or 100)
+        
+        # Update alert level based on thresholds
+        if absence_rate < 15:
+            student.alert_level = "none"  # Green (OK)
+        elif 15 <= absence_rate < 20:
+            student.alert_level = "warning"  # Yellow (Warning)
+        elif 20 <= absence_rate < 25:
+            student.alert_level = "critical"  # Orange (Critical)
+        else:  # >= 25%
+            student.alert_level = "failing"  # Red (Failing)
+
+        db.commit()
+        db.refresh(student)

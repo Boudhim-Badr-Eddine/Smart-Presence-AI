@@ -1,6 +1,7 @@
 from app.models.attendance import AttendanceRecord
 from app.models.audit_log import AuditLog
 from app.models.chatbot import ChatbotConversation, ChatbotMessage
+from app.models.controle import Controle
 from app.models.feedback import StudentFeedback
 from app.models.facial_verification_log import FacialVerificationLog
 from app.models.message import Message, MessageThread
@@ -26,6 +27,7 @@ __all__ = [
     "Trainer",
     "Session",
     "AttendanceRecord",
+    "Controle",
     "Notification",
     "NotificationPreferences",
     "ChatbotConversation",

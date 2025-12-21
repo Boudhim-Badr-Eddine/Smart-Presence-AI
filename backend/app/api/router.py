@@ -8,6 +8,7 @@ from app.api.routes import (
     attendance,
     auth,
     chatbot,
+    controles,
     dashboard,
     export,
     facial,
@@ -34,6 +35,7 @@ api_router.include_router(users.router, prefix="/users")
 api_router.include_router(sessions.router, prefix="/sessions")
 api_router.include_router(students.router, prefix="/students")
 api_router.include_router(attendance.router, prefix="/attendance")
+api_router.include_router(controles.router, prefix="/controles", tags=["Controles"])
 api_router.include_router(chatbot.router, prefix="/chatbot")
 api_router.include_router(notifications.router, prefix="/notifications")
 api_router.include_router(session_requests.router, prefix="/session-requests")

@@ -78,6 +78,8 @@ def get_student_stats(
             if next_session and next_session.session_date
             else None
         ),
+        "total_absence_hours": student.total_absence_hours or 0,
+        "total_late_minutes": student.total_late_minutes or 0,
         "alert_level": student.alert_level or "none",
     }
 

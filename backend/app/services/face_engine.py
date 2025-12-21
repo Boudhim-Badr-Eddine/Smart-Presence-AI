@@ -67,7 +67,7 @@ def _compute_blur_and_brightness(img_bgr: np.ndarray) -> tuple[float, float]:
 def extract_embedding_with_quality(
     image_bytes: bytes,
     *,
-    min_blur_score: float = 15.0,
+    min_blur_score: float = 8.0,  # Lowered from 15.0 for webcam compatibility
     min_brightness: float = 40.0,
     max_brightness: float = 220.0,
     min_face_size: int = 80,

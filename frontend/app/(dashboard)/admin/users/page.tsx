@@ -35,6 +35,22 @@ interface UserFormData {
   address?: string;
   jobTitle?: string;
   department?: string;
+  // Student fields
+  dateOfBirth?: string;
+  cinNumber?: string;
+  parentName?: string;
+  parentRelationship?: string;
+  groupName?: string;
+  enrollmentDate?: string;
+  expectedGraduation?: string;
+  // Trainer fields
+  specialization?: string;
+  yearsExperience?: number;
+  officeLocation?: string;
+  education?: string;
+  certifications?: string;
+  availability?: string;
+  linkedinUrl?: string;
 }
 
 export default function AdminUsersPage() {
@@ -314,7 +330,7 @@ export default function AdminUsersPage() {
                       id="studentId"
                       value={formData.studentId || ''}
                       onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                      placeholder="DEV101-001"
+                      placeholder="FS202001"
                     />
                   </div>
 
@@ -324,8 +340,92 @@ export default function AdminUsersPage() {
                       id="className"
                       value={formData.className || ''}
                       onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                      placeholder="DEV101"
+                      placeholder="FS202"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="groupName">Groupe</Label>
+                    <Input
+                      id="groupName"
+                      value={formData.groupName || ''}
+                      onChange={(e) => setFormData({ ...formData, groupName: e.target.value })}
+                      placeholder="A"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date de naissance</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth || ''}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cinNumber">Numéro CIN</Label>
+                    <Input
+                      id="cinNumber"
+                      value={formData.cinNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, cinNumber: e.target.value })}
+                      placeholder="AB123456"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="enrollmentDate">Date d'inscription</Label>
+                    <Input
+                      id="enrollmentDate"
+                      type="date"
+                      value={formData.enrollmentDate || ''}
+                      onChange={(e) => setFormData({ ...formData, enrollmentDate: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="expectedGraduation">Date de fin prévue</Label>
+                    <Input
+                      id="expectedGraduation"
+                      type="date"
+                      value={formData.expectedGraduation || ''}
+                      onChange={(e) => setFormData({ ...formData, expectedGraduation: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <h3 className="mt-6 mb-4 flex items-center gap-2 text-md font-semibold text-white">
+                  <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Informations parent/tuteur
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="parentName">Nom du parent/tuteur</Label>
+                    <Input
+                      id="parentName"
+                      value={formData.parentName || ''}
+                      onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                      placeholder="Mohammed El Hessouni"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="parentRelationship">Lien de parenté</Label>
+                    <Select
+                      value={formData.parentRelationship || ''}
+                      onValueChange={(value) => setFormData({ ...formData, parentRelationship: value })}
+                    >
+                      <SelectTrigger id="parentRelationship">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Père">Père</SelectItem>
+                        <SelectItem value="Mère">Mère</SelectItem>
+                        <SelectItem value="Tuteur">Tuteur</SelectItem>
+                        <SelectItem value="Autre">Autre</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -347,6 +447,89 @@ export default function AdminUsersPage() {
                       value={formData.parentPhone || ''}
                       onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
                       placeholder="+212 6 XX XX XX XX"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.role === 'trainer' && (
+              <div>
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Informations formateur
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="specialization">Spécialisation</Label>
+                    <Input
+                      id="specialization"
+                      value={formData.specialization || ''}
+                      onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                      placeholder="Web Development & Frontend"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="yearsExperience">Années d'expérience</Label>
+                    <Input
+                      id="yearsExperience"
+                      type="number"
+                      min="0"
+                      value={formData.yearsExperience || ''}
+                      onChange={(e) => setFormData({ ...formData, yearsExperience: parseInt(e.target.value) || 0 })}
+                      placeholder="5"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="education">Formation/Diplôme</Label>
+                    <Input
+                      id="education"
+                      value={formData.education || ''}
+                      onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                      placeholder="Master en Informatique"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="officeLocation">Bureau</Label>
+                    <Input
+                      id="officeLocation"
+                      value={formData.officeLocation || ''}
+                      onChange={(e) => setFormData({ ...formData, officeLocation: e.target.value })}
+                      placeholder="Bureau 301"
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="certifications">Certifications</Label>
+                    <Input
+                      id="certifications"
+                      value={formData.certifications || ''}
+                      onChange={(e) => setFormData({ ...formData, certifications: e.target.value })}
+                      placeholder="AWS Certified Developer, React Expert"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="availability">Disponibilité</Label>
+                    <Input
+                      id="availability"
+                      value={formData.availability || ''}
+                      onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
+                      placeholder="Lun-Ven: 9h-17h"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedinUrl">LinkedIn (URL)</Label>
+                    <Input
+                      id="linkedinUrl"
+                      type="url"
+                      value={formData.linkedinUrl || ''}
+                      onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+                      placeholder="https://linkedin.com/in/..."
                     />
                   </div>
                 </div>

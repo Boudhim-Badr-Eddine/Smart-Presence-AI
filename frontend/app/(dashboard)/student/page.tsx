@@ -30,6 +30,9 @@ type StudentStats = {
   absences?: number;
   justified_absences?: number;
   next_session?: string;
+  total_absence_hours?: number;
+  total_late_minutes?: number;
+  alert_level?: 'none' | 'warning' | 'critical' | 'failing';
 };
 
 type AttendanceRecord = {
@@ -158,28 +161,28 @@ export default function StudentPage() {
 
   const cards = [
     {
-      icon: BookOpen,
-      label: 'Classes',
-      value: stats?.total_classes ?? stats?.total_sessions ?? 0,
-      color: 'bg-blue-600/20 text-blue-300',
-    },
-    {
       icon: TrendingUp,
       label: 'Taux de présence',
       value: `${(stats?.attendance_rate ?? 0).toFixed(1)}%`,
       color: 'bg-emerald-600/20 text-emerald-300',
     },
     {
-      icon: AlertCircle,
-      label: 'Absences',
-      value: stats?.absences ?? stats?.absent_count ?? 0,
+      icon: BookOpen,
+      label: 'Classes',
+      value: stats?.total_classes ?? stats?.total_sessions ?? 0,
+      color: 'bg-blue-600/20 text-blue-300',
+    },
+    {
+      icon: Clock,
+      label: 'Heures d\'absence',
+      value: `${stats?.total_absence_hours ?? 0}h`,
       color: 'bg-red-600/20 text-red-300',
     },
     {
-      icon: CheckCircle,
-      label: 'Justifiées',
-      value: stats?.justified_absences ?? 0,
-      color: 'bg-blue-600/20 text-blue-300',
+      icon: AlertCircle,
+      label: 'Absences',
+      value: stats?.absences ?? stats?.absent_count ?? 0,
+      color: 'bg-amber-600/20 text-amber-300',
     },
   ];
 
@@ -196,6 +199,57 @@ export default function StudentPage() {
             Suivi de votre présence et de vos classes.
           </p>
         </div>
+
+        {/* ⭐ VISUAL ALERT LEVEL INDICATOR */}
+        {stats?.alert_level && stats.alert_level !== 'none' && (
+          <Alert
+            className={`mb-4 ${
+              stats.alert_level === 'failing'
+                ? 'border-red-500/50 bg-red-600/20'
+                : stats.alert_level === 'critical'
+                ? 'border-orange-500/50 bg-orange-600/20'
+                : 'border-yellow-500/50 bg-yellow-600/20'
+            }`}
+          >
+            <AlertCircle
+              className={`h-4 w-4 ${
+                stats.alert_level === 'failing'
+                  ? 'text-red-400'
+                  : stats.alert_level === 'critical'
+                  ? 'text-orange-400'
+                  : 'text-yellow-400'
+              }`}
+            />
+            <AlertDescription
+              className={`${
+                stats.alert_level === 'failing'
+                  ? 'text-red-300'
+                  : stats.alert_level === 'critical'
+                  ? 'text-orange-300'
+                  : 'text-yellow-300'
+              }`}
+            >
+              {stats.alert_level === 'failing' && (
+                <>
+                  <strong>Alerte critique:</strong> Votre taux de présence ({stats.attendance_rate.toFixed(1)}%) est
+                  en dessous du seuil acceptable. Contactez votre formateur immédiatement.
+                </>
+              )}
+              {stats.alert_level === 'critical' && (
+                <>
+                  <strong>Attention:</strong> Votre taux de présence ({stats.attendance_rate.toFixed(1)}%)
+                  nécessite une amélioration urgente.
+                </>
+              )}
+              {stats.alert_level === 'warning' && (
+                <>
+                  <strong>Avertissement:</strong> Votre taux de présence ({stats.attendance_rate.toFixed(1)}%) est en
+                  baisse. Soyez plus assidu.
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid gap-4 md:grid-cols-4 mb-6">
           {cards.map((card, idx) => {
