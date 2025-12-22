@@ -9,9 +9,9 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 
-from app.rag.pipeline import rag_answer
-from app.memory import save_turn, load_context
-from app.db.database import query_db
+from app.ai_agent.rag_pipeline import rag_answer
+from app.ai_agent.memory import save_turn, load_context
+from app.ai_agent.observability.logger import log_event
 
 # Configuration
 logging.basicConfig(level=logging.INFO)

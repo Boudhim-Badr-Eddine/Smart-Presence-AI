@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime
 from typing import List, Dict, Any
-from app.db.database import SessionLocal
+from app.db.session import SessionLocal
 from app.models.chatbot import ChatbotConversation, ChatbotMessage
 
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +50,7 @@ def save_turn(user_id, user_message, assistant_message):
             if not conversation:
                 conversation = ChatbotConversation(
                     user_id=user_id_int,
+                    user_type="student",  # Required field for SmartPresence
                     title=f"Conversation {datetime.now().strftime('%Y-%m-%d %H:%M')}"
                 )
                 db.add(conversation)
